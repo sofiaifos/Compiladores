@@ -1,17 +1,25 @@
 CC=gcc
+ETAPA=etapa2
+_OBJ=lex.yy.o parser.tab.o main.o
+ODIR=obj
+OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
+PARSER=parser.tab.c parser.tab.h
+DEPS=lex.yy.c $(PARSER)
+
+$(ETAPA): $(OBJ)
+	$(CC) -o $@ $^
+		
+$(ODIR)/%.o: %.c $(DEPS)
+	$(CC) -c -o $@ $<
 
 lex.yy.c: scanner.l
 		flex scanner.l
-
-bison: parser.y
-		bison -d parser.y
-
-etapa2: bison scanner.l lex.yy.c main.c
-		$(CC) -c main.c parser.tab.c lex.yy.c
-		$(CC) main.o parser.tab.o lex.yy.o -o etapa2
+		
+$(PARSER): parser.y
+	bison -d parser.y
 
 run:
-		./etapa2
+	./$(ETAPA)
 
 clean:
-		rm etapa2
+	rm -f $(ODIR)/*.o $(PARSER) lex.yy.c $(ETAPA)

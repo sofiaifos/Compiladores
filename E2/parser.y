@@ -41,7 +41,6 @@ exemplo de corpo
 
 funcao: cabecalho corpo;
 
-
 cabecalho: nome_da_funcao '=' lista_de_parametros '>' tipagem;
 
 corpo: '{' bloco_de_comandos '}';
@@ -67,6 +66,52 @@ lista_de_identificadores: TK_IDENTIFICADOR | TK_IDENTIFICADOR ',' lista_de_ident
 inicializacao: TK_IDENTIFICADOR TK_OC_LE literal; /*questao: pode inicializar n variaveis?*/
 
 literal: TK_LIT_INT | TK_LIT_FLOAT;
+
+atribuicao: TK_IDENTIFICADOR '=' expressao;
+
+chamada_de_funcao: nome_da_funcao '(' lista_de_argumentos ')';
+
+lista_de_argumentos:  expressao | lista_de_argumentos ',' expressao;
+
+retorno: TK_PR_RETURN expressao;
+
+controle_de_fluxo: condicional | iterativo;
+
+condicional: TK_PR_IF '(' expressao ')' bloco_de_comandos (TK_PR_ELSE bloco_de_comandos | /*vazio*/);  
+
+iterativo: TK_PR_WHILE '(' expressao ')' bloco_de_comandos;
+
+expressao: expressao_or;
+
+expressao_or: expressao_or TK_OC_OR expressao_and | expressao_and;
+
+expressao_and: expressao_and TK_OC_AND expressao_eq | expressao_eq;
+
+operador_eq: TK_OC_EQ | TK_OC_NE;
+
+expressao_eq: expressao_eq operador_eq expressao_comparacao | expressao_comparacao;
+
+operador_comparacao: '<' | '>' | TK_OC_LE | TK_OC_GE;
+
+expressao_comparacao: expressao_comparacao operador_comparacao expressao_soma | expressao_soma;
+
+operador_soma: '+' | '-';
+
+expressao_soma: expressao_soma operador_soma expressao_multiplicacao | expressao_multiplicacao;
+
+operador_multiplicacao: '*' | '/' | '%' ;
+
+expressao_multiplicacao: expressao_multiplicacao operador_multiplicacao expressao_unaria | expressao_unaria;
+
+operador_unario: '!' | '-'; 
+
+expressao_unaria: operador_unario expressao_unaria | expressao_parentese;
+
+expressao_parentese: '(' expressao ')' | operando;
+
+operando: TK_IDENTIFICADOR | literal | chamada_de_funcao | expressao;
+
+
 
 
 %%

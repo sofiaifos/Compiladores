@@ -3,7 +3,9 @@
 int yylex(void);
 void yyerror (char const *mensagem);
 %}
-
+%{
+    extern int yylineno;
+%}
 %token TK_PR_INT
 %token TK_PR_FLOAT
 %token TK_PR_IF
@@ -119,5 +121,5 @@ operando: TK_IDENTIFICADOR | literal | chamada_de_funcao;
 %%
 void yyerror(char const *mensagem)
 {
-    fprintf(stderr, "%s\n", mensagem);
+    fprintf(stderr, "%s na linha %d \n", mensagem, yylineno);
 }

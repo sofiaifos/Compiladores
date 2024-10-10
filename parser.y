@@ -45,7 +45,9 @@ funcao: cabecalho corpo;
 
 cabecalho: nome_da_funcao '=' lista_de_parametros '>' tipagem;
 
-corpo: '{' bloco_de_comandos '}';
+corpo: bloco_de_comandos;
+
+bloco_de_comandos: '{' lista_de_comandos '}';
 
 nome_da_funcao: TK_IDENTIFICADOR;
 
@@ -55,7 +57,7 @@ parametro: TK_IDENTIFICADOR '<' '-' tipagem;
 
 tipagem: TK_PR_INT | TK_PR_FLOAT;
 
-bloco_de_comandos: bloco_de_comandos comando | /*vazio*/;
+lista_de_comandos: lista_de_comandos comando | /*vazio*/;
 
 comando: comando_simples ';';
 
@@ -63,9 +65,9 @@ comando_simples: declaracao_de_variavel | atribuicao | chamada_de_funcao | retor
 
 declaracao_de_variavel: tipagem lista_de_identificadores;
 
-lista_de_identificadores: TK_IDENTIFICADOR | TK_IDENTIFICADOR ',' lista_de_identificadores;
+variavel: TK_IDENTIFICADOR | TK_IDENTIFICADOR TK_OC_LE literal;
 
-/*inicializacao: TK_IDENTIFICADOR TK_OC_LE literal; questao: pode inicializar n variaveis?*/
+lista_de_identificadores: variavel ',' lista_de_identificadores | variavel;
 
 literal: TK_LIT_INT | TK_LIT_FLOAT;
 

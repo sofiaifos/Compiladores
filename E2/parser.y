@@ -63,7 +63,7 @@ declaracao_de_variavel: tipagem lista_de_identificadores;
 
 lista_de_identificadores: TK_IDENTIFICADOR | TK_IDENTIFICADOR ',' lista_de_identificadores;
 
-inicializacao: TK_IDENTIFICADOR TK_OC_LE literal; /*questao: pode inicializar n variaveis?*/
+/*inicializacao: TK_IDENTIFICADOR TK_OC_LE literal; questao: pode inicializar n variaveis?*/
 
 literal: TK_LIT_INT | TK_LIT_FLOAT;
 
@@ -77,7 +77,9 @@ retorno: TK_PR_RETURN expressao;
 
 controle_de_fluxo: condicional | iterativo;
 
-condicional: TK_PR_IF '(' expressao ')' bloco_de_comandos (TK_PR_ELSE bloco_de_comandos | /*vazio*/);  
+condicional: TK_PR_IF '(' expressao ')' bloco_de_comandos condicional_else;  
+
+condicional_else: TK_PR_ELSE bloco_de_comandos | /*vazio*/;
 
 iterativo: TK_PR_WHILE '(' expressao ')' bloco_de_comandos;
 
@@ -109,7 +111,7 @@ expressao_unaria: operador_unario expressao_unaria | expressao_parentese;
 
 expressao_parentese: '(' expressao ')' | operando;
 
-operando: TK_IDENTIFICADOR | literal | chamada_de_funcao | expressao;
+operando: TK_IDENTIFICADOR | literal | chamada_de_funcao;
 
 
 

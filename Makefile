@@ -20,8 +20,8 @@ $(PARSER): parser.y
 	bison -d parser.y
 	
 compress:
-	rm -f teste.txt
-	tar cvzf $(FILENAME).tgz .
+	rm -f teste.txt 
+	tar cvzf $(ETAPA).tgz --exclude=.git . 
 
 run:
 	./$(ETAPA)

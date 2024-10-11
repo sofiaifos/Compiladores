@@ -10,6 +10,7 @@ $(ETAPA): $(OBJ)
 	$(CC) -o $@ $^
 		
 $(ODIR)/%.o: %.c $(DEPS)
+	mkdir -p $(ODIR)
 	$(CC) -c -o $@ $<
 
 lex.yy.c: scanner.l
@@ -17,9 +18,14 @@ lex.yy.c: scanner.l
 		
 $(PARSER): parser.y
 	bison -d parser.y
+	
+compress:
+	rm -f teste.txt
+	tar cvzf $(FILENAME).tgz .
 
 run:
 	./$(ETAPA)
 
 clean:
-	rm -f $(ODIR)/*.o $(PARSER) lex.yy.c $(ETAPA)
+	rm -f $(PARSER) lex.yy.c $(ETAPA)
+	rm -r -f $(ODIR)

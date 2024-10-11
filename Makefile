@@ -20,11 +20,11 @@ $(PARSER): parser.y
 	bison -d parser.y
 	
 compress: clean
-	tar cvzf $(ETAPA).tgz --exclude=.git --exclude=teste.txt --exclude=runtests.sh . 
+	tar cvzf $(ETAPA).tgz --exclude-vcs --exclude=teste.txt --exclude=runtests.sh . 
 
 run:
 	./$(ETAPA)
 
 clean:
-	rm -f $(PARSER) lex.yy.c $(ETAPA)
+	rm -f $(PARSER) lex.yy.c $(ETAPA) 
 	rm -r -f $(ODIR)

@@ -61,7 +61,7 @@ lista_de_comandos: lista_de_comandos comando | /*vazio*/;
 
 comando: comando_simples ';';
 
-comando_simples: declaracao_de_variavel | atribuicao | chamada_de_funcao | retorno | controle_de_fluxo;
+comando_simples: declaracao_de_variavel | atribuicao | chamada_de_funcao | retorno | controle_de_fluxo | bloco_de_comandos;
 
 declaracao_de_variavel: tipagem lista_de_identificadores;
 

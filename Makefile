@@ -19,9 +19,8 @@ lex.yy.c: scanner.l
 $(PARSER): parser.y
 	bison -d parser.y
 	
-compress:
-	rm -f teste.txt 
-	tar cvzf $(ETAPA).tgz --exclude=.git . 
+compress: clean
+	tar cvzf $(ETAPA).tgz --exclude=.git --exclude=teste.txt . 
 
 run:
 	./$(ETAPA)

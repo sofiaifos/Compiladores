@@ -20,7 +20,7 @@ $(PARSER): parser.y
 	bison -d parser.y
 	
 compress: clean
-	tar cvzf $(ETAPA).tgz --exclude=.git --exclude=teste.txt . 
+	tar cvzf $(ETAPA).tgz --exclude=.git --exclude=teste.txt --exclude=runtests.sh . 
 
 run:
 	./$(ETAPA)

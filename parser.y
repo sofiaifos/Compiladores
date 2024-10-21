@@ -52,7 +52,8 @@ corpo: bloco_de_comandos;
 
 nome_da_funcao: TK_IDENTIFICADOR;
 
-lista_de_parametros: lista_de_parametros TK_OC_OR parametro | parametro | /*vazia*/;
+lista_de_parametros: lista_de_parametros_nao_vazia | /*vazia*/;
+lista_de_parametros_nao_vazia: lista_de_parametros TK_OC_OR parametro | parametro ;
 parametro: TK_IDENTIFICADOR '<' '-' tipagem;
 tipagem: TK_PR_INT | TK_PR_FLOAT;
 

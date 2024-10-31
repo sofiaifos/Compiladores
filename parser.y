@@ -17,6 +17,16 @@ void yyerror (char const *mensagem);
 %{
     extern int yylineno;
 %}
+
+%code requires{ 
+    #include "asd.h"
+}
+
+%union{
+	struct valor valor_lexico
+	asd *nodo
+}
+
 %token TK_PR_INT
 %token TK_PR_FLOAT
 %token TK_PR_IF
@@ -29,10 +39,53 @@ void yyerror (char const *mensagem);
 %token TK_OC_NE
 %token TK_OC_AND
 %token TK_OC_OR
-%token TK_IDENTIFICADOR
-%token TK_LIT_INT
-%token TK_LIT_FLOAT
+%token<valor_lexico> TK_IDENTIFICADOR
+%token<valor_lexico> TK_LIT_INT
+%token<valor_lexico> TK_LIT_FLOAT
 %token TK_ERRO
+
+%type<nodo> programa
+%type<nodo> lista_de_funcoes   
+%type<nodo> funcao
+%type<nodo> cabecalho
+%type<nodo> corpo
+%type<nodo> nome_da_funcao
+%type<nodo> lista_de_parametros
+%type<nodo> tipagem
+%type<nodo> lista_de_parametros_nao_vazia
+%type<nodo> parametro
+%type<nodo> bloco_de_comandos
+%type<nodo> lista_de_comandos
+%type<nodo> comando
+%type<nodo> comando_simples
+%type<nodo> declaracao_de_variavel
+%type<nodo> atribuicao
+%type<nodo> chamada_de_funcao
+%type<nodo> retorno
+%type<nodo> controle_de_fluxo
+%type<nodo> bloco_de_comandos
+%type<nodo> lista_de_identificadores
+%type<nodo> expressao
+%type<nodo> variavel
+%type<nodo> literal
+%type<nodo> lista_de_argumentos
+%type<nodo> condicional
+%type<nodo> iterativo
+%type<nodo> condicional_else
+%type<nodo> expressao_and
+%type<nodo> expressao_comparacao
+%type<nodo> expressao_eq
+%type<nodo> expressao_multiplicacao
+%type<nodo> expressao_or
+%type<nodo> expressao_parenteses
+%type<nodo> expressao_soma
+%type<nodo> expressao_unaria
+%type<nodo> operando
+%type<nodo> operador_comparacao
+%type<nodo> operador_eq
+%type<nodo> operador_multiplicacao
+%type<nodo> operador_soma
+%type<nodo> operador_unario
 
 %define parse.error verbose
 

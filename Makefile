@@ -26,7 +26,8 @@ compress: clean
 	tar cvzf $(ETAPA).tgz --exclude-vcs --exclude=teste.txt --exclude=runtests.sh . 
 
 run: 
-	./etapa3 < teste.txt | ./output2dot.sh | xdot -
+	./etapa3 < teste.txt | ./output2dot.sh > saida.dot 
+	xdot saida.dot
 
 
 clean:

@@ -5,7 +5,7 @@ struct valor{
   int linha;
 	char *tipo;
 	char *valor;
-}
+};
 
 typedef struct asd_tree {
   char *label;
@@ -33,8 +33,11 @@ void asd_add_child(asd_tree_t *tree, asd_tree_t *child);
  */
 void asd_print(asd_tree_t *tree);
 
+struct valor novo_valor(int line_number, char *type, char *valor);
+
 /*
  * Função asd_print_graphviz, idem, em formato DOT
  */
 void asd_print_graphviz (asd_tree_t *tree);
 #endif //_ARVORE_H_
+

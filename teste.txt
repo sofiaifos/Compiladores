@@ -18,9 +18,9 @@ foo2 = x <- int > float{
   return x;
   return (x *(9 + 5/(2---2)*9)|(2+9));
   if (1) {
-    
+    return !5;
   } else {
-
+    return 3+8;
   };
   if (0) {
 

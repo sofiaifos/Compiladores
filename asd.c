@@ -4,6 +4,15 @@
 #include "asd.h"
 #define ARQUIVO_SAIDA "saida.dot"
 
+struct valor novo_valor(int line_number, char *type, char *valor){
+	struct valor novo;
+	novo.linha = line_number;
+	novo.tipo = type;
+	novo.valor = valor;
+	return novo;
+};
+
+
 asd_tree_t *asd_new(const char *label)
 {
   asd_tree_t *ret = NULL;

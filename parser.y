@@ -11,6 +11,7 @@
 
 %{
     #include <stdio.h>
+    #include <string.h>
 int yylex(void);
 void yyerror (char const *mensagem);
 %}
@@ -142,7 +143,7 @@ atribuicao: TK_IDENTIFICADOR '=' expressao {$$ = asd_new("="); asd_tree_t *e = a
 
 
 /* --------------- Chamada de função --------------- */
-chamada_de_funcao: nome_da_funcao '(' lista_de_argumentos ')' {$$=$1; asd_add_child($$,$3);};
+chamada_de_funcao: nome_da_funcao '(' lista_de_argumentos ')' {char call[100]="call "; strcat(call,$1->label);$$=asd_new(call); asd_add_child($$,$3);};
 lista_de_argumentos:  expressao {$$=$1;}
 | lista_de_argumentos ',' expressao{$$=$3;asd_add_child($$,$1);};
 

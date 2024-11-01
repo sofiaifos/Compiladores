@@ -25,12 +25,10 @@ $(PARSER): parser.y
 compress: clean
 	tar cvzf $(ETAPA).tgz --exclude-vcs --exclude=teste.txt --exclude=runtests.sh . 
 
-run:
-	echo "digraph grafo { vazio; }" > saida.dot
-	xdot saida.dot &
-	./$(ETAPA)
+run: 
+	./etapa3 < teste.txt | ./output2dot.sh | xdot -
 
 
 clean:
-	rm -f $(PARSER) lex.yy.c $(ETAPA) 
+	rm -f $(PARSER) lex.yy.c $(ETAPA) saida.dot
 	rm -r -f $(ODIR)

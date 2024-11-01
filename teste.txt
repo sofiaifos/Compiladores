@@ -1,12 +1,14 @@
 foo1 => int {
-  int v1, v2, v3;
+  int v1, v2 <= 5, v3;
   float v4, v5;
   int v6, v7;
+    b1 = !4;
+  b6 = 8;
 }
 
 foo2 = x <- int > float{
   int v1, v2<=0, v3;
-  float v4, v5;
+  float v4, v5, b8 <= 5;
   int v6, v7;
   v1 = 5;
   v2 = 4.5;
@@ -17,8 +19,9 @@ foo2 = x <- int > float{
   foo600(v1, v2 * v3, 5 + 1 - ---4);
   return x;
   return (x *(9 + 5/(2---2)*9)|(2+9));
+ { };
   if (1) {
-    return !5;
+
   } else {
     return 3+8;
   };

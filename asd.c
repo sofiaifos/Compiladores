@@ -35,8 +35,6 @@ void asd_free(asd_tree_t *tree)
     free(tree->children);
     free(tree->label);
     free(tree);
-  }else{
-    printf("Erro: %s recebeu parâmetro tree = %p.\n", __FUNCTION__, tree);
   }
 }
 
@@ -46,8 +44,6 @@ void asd_add_child(asd_tree_t *tree, asd_tree_t *child)
     tree->number_of_children++;
     tree->children = realloc(tree->children, tree->number_of_children * sizeof(asd_tree_t*));
     tree->children[tree->number_of_children-1] = child;
-  }else{
-    printf("Erro: %s recebeu parâmetro tree = %p / %p.\n", __FUNCTION__, tree, child);
   }
 }
 
@@ -59,8 +55,6 @@ static void _asd_print (FILE *foutput, asd_tree_t *tree, int profundidade)
     for (i = 0; i < tree->number_of_children; i++){
       _asd_print(foutput, tree->children[i], profundidade+1);
     }
-  }else{
-    printf("Erro: %s recebeu parâmetro tree = %p.\n", __FUNCTION__, tree);
   }
 }
 
@@ -74,32 +68,21 @@ void asd_print(asd_tree_t *tree)
   }
 }
 
-static void _asd_print_graphviz (FILE *foutput, asd_tree_t *tree)
+static void _asd_print_graphviz (asd_tree_t *tree)
 {
   int i;
   if (tree != NULL){
-    fprintf(foutput, "  %ld [ label=\"%s\" ];\n", (long)tree, tree->label);
+    printf("  %ld [label=\"%s\"];\n", (long)tree, tree->label);
     for (i = 0; i < tree->number_of_children; i++){
-      fprintf(foutput, "  %ld -> %ld;\n", (long)tree, (long)tree->children[i]);
-      _asd_print_graphviz(foutput, tree->children[i]);
+      printf("  %ld,%ld;\n", (long)tree, (long)tree->children[i]);
+      _asd_print_graphviz(tree->children[i]);
     }
-  }else{
-    printf("Erro: %s recebeu parâmetro tree = %p.\n", __FUNCTION__, tree);
   }
 }
 
 void asd_print_graphviz(asd_tree_t *tree)
 {
-  FILE *foutput = fopen(ARQUIVO_SAIDA, "w+");
-  if(foutput == NULL){
-    printf("Erro: %s não pude abrir o arquivo [%s] para escrita.\n", __FUNCTION__, ARQUIVO_SAIDA);
-  }
   if (tree != NULL){
-    fprintf(foutput, "digraph grafo {\n");
-    _asd_print_graphviz(foutput, tree);
-    fprintf(foutput, "}\n");
-    fclose(foutput);
-  }else{
-    printf("Erro: %s recebeu parâmetro tree = %p.\n", __FUNCTION__, tree);
+    _asd_print_graphviz(tree);
   }
 }

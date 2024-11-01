@@ -109,7 +109,7 @@ parametro: TK_IDENTIFICADOR '<' '-' tipagem;
 tipagem: TK_PR_INT | TK_PR_FLOAT;
 
 bloco_de_comandos: '{' lista_de_comandos '}' {$$=$2;};
-lista_de_comandos: lista_de_comandos comando {$$=$2;asd_add_child($$,$1);}
+lista_de_comandos: lista_de_comandos comando {if($2!=NULL){$$=$2;asd_add_child($$,$1);}}
 | /*vazia*/ {$$ = NULL;};
 
 
@@ -126,14 +126,14 @@ comando_simples: declaracao_de_variavel {$$ = $1;}
 
 
 /* --------------- Declaração de variável --------------- */
-declaracao_de_variavel: tipagem lista_de_identificadores {$$ = $2;};
+declaracao_de_variavel: tipagem lista_de_identificadores {$$=$2;};
 
 variavel: TK_IDENTIFICADOR {$$ = NULL;}
 | TK_IDENTIFICADOR TK_OC_LE literal {$$ = asd_new("<="); asd_tree_t *l = asd_new($1.valor); asd_add_child($$,l);asd_add_child($$,$3);};
 literal: TK_LIT_INT { $$ = asd_new($1.valor);}
 | TK_LIT_FLOAT      { $$ = asd_new($1.valor);};
 
-lista_de_identificadores: lista_de_identificadores ',' variavel{if($1!=NULL){$$ = $3;}asd_add_child($$,$1);}
+lista_de_identificadores: lista_de_identificadores ',' variavel{if($3!=NULL){$$=$3;asd_add_child($$,$1);}}
 | variavel {if($1!=NULL){$$ = $1;}};
 
 
@@ -144,7 +144,7 @@ atribuicao: TK_IDENTIFICADOR '=' expressao {$$ = asd_new("="); asd_tree_t *e = a
 /* --------------- Chamada de função --------------- */
 chamada_de_funcao: nome_da_funcao '(' lista_de_argumentos ')' {$$=$1; asd_add_child($$,$3);};
 lista_de_argumentos:  expressao {$$=$1;}
-| lista_de_argumentos ',' expressao{$$=$1;};
+| lista_de_argumentos ',' expressao{$$=$3;asd_add_child($$,$1);};
 
 
 /* --------------- Comando de retorno --------------- */

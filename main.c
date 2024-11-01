@@ -11,5 +11,6 @@ int main (int argc, char **argv)
   int ret = yyparse(); 
   exporta (arvore);
   yylex_destroy();
+  asd_free(arvore);
   return ret;
 }

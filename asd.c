@@ -72,9 +72,9 @@ static void _asd_print_graphviz (asd_tree_t *tree)
 {
   int i;
   if (tree != NULL){
-    printf("  %ld [label=\"%s\"];\n", (long)tree, tree->label);
+    printf("  %p [label=\"%s\"]\n", tree, tree->label);
     for (i = 0; i < tree->number_of_children; i++){
-      printf("  %ld,%ld;\n", (long)tree, (long)tree->children[i]);
+      printf("  %p,%p;\n", tree, tree->children[i]);
       _asd_print_graphviz(tree->children[i]);
     }
   }

@@ -92,7 +92,7 @@ void yyerror (char const *mensagem);
 programa: lista_de_funcoes {$$ = $1;arvore=$$;}
 | /* vazio */ {$$=NULL;arvore=$$;};
 
-lista_de_funcoes: lista_de_funcoes funcao {$$=$2;asd_add_child($$,$1);}
+lista_de_funcoes: funcao lista_de_funcoes {$$=$1;asd_add_child($$,$2);}
 | funcao {$$=$1;};
 
 
@@ -110,7 +110,7 @@ parametro: TK_IDENTIFICADOR '<' '-' tipagem;
 tipagem: TK_PR_INT | TK_PR_FLOAT;
 
 bloco_de_comandos: '{' lista_de_comandos '}' {$$=$2;};
-lista_de_comandos: lista_de_comandos comando {if($2!=NULL){$$=$2;asd_add_child($$,$1);}}
+lista_de_comandos: comando lista_de_comandos{if($1!=NULL){$$=$1;asd_add_child($$,$2);}else{$$=$2;}}
 | /*vazia*/ {$$ = NULL;};
 
 
@@ -118,12 +118,12 @@ lista_de_comandos: lista_de_comandos comando {if($2!=NULL){$$=$2;asd_add_child($
 
 comando: comando_simples ';' {$$ = $1;};
 
-comando_simples: declaracao_de_variavel {$$ = $1;}
+comando_simples: declaracao_de_variavel {if($1!=NULL){$$ = $1;}}
 | atribuicao {$$ = $1;}
 | chamada_de_funcao {$$ = $1;}
 | retorno {$$ = $1;}
 | controle_de_fluxo {$$ = $1;}
-| bloco_de_comandos {$$ = $1;}; 
+| bloco_de_comandos {if($1!=NULL){$$ = $1;}}; 
 
 
 /* --------------- Declaração de variável --------------- */
@@ -134,7 +134,7 @@ variavel: TK_IDENTIFICADOR {$$ = NULL;}
 literal: TK_LIT_INT { $$ = asd_new($1.valor);}
 | TK_LIT_FLOAT      { $$ = asd_new($1.valor);};
 
-lista_de_identificadores: lista_de_identificadores ',' variavel{if($3!=NULL){$$=$3;asd_add_child($$,$1);}}
+lista_de_identificadores: variavel ',' lista_de_identificadores{if($1!=NULL){$$=$1;asd_add_child($$,$3);}}
 | variavel {if($1!=NULL){$$ = $1;}};
 
 
@@ -143,9 +143,9 @@ atribuicao: TK_IDENTIFICADOR '=' expressao {$$ = asd_new("="); asd_tree_t *e = a
 
 
 /* --------------- Chamada de função --------------- */
-chamada_de_funcao: nome_da_funcao '(' lista_de_argumentos ')' {char call[100]="call "; strcat(call,$1->label);$$=asd_new(call); asd_add_child($$,$3);};
+chamada_de_funcao: nome_da_funcao '(' lista_de_argumentos ')' {int len = strlen($1->label);char call[5+len]; strcpy(call,"call "); strcat(call,$1->label);$$=asd_new(call); asd_add_child($$,$3);};
 lista_de_argumentos:  expressao {$$=$1;}
-| lista_de_argumentos ',' expressao{$$=$3;asd_add_child($$,$1);};
+| expressao ',' lista_de_argumentos {$$=$1;asd_add_child($$,$3);};
 
 
 /* --------------- Comando de retorno --------------- */

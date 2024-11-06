@@ -134,7 +134,7 @@ variavel: TK_IDENTIFICADOR {$$ = NULL;}
 literal: TK_LIT_INT { $$ = asd_new($1.valor);}
 | TK_LIT_FLOAT      { $$ = asd_new($1.valor);};
 
-lista_de_identificadores: variavel ',' lista_de_identificadores{if($1!=NULL){$$=$1;asd_add_child($$,$3);}}
+lista_de_identificadores: variavel ',' lista_de_identificadores{if($1!=NULL){$$=$1;asd_add_child($$,$3);}else{$$=$3;}}
 | variavel {if($1!=NULL){$$ = $1;}};
 
 

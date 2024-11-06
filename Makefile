@@ -23,7 +23,7 @@ $(PARSER): parser.y
 	bison -d parser.y
 	
 compress: clean
-	tar cvzf $(ETAPA).tgz --exclude-vcs --exclude=teste.txt --exclude=runtests.sh --exclude=output2dot.sh . 
+	tar cvzf $(ETAPA).tgz --exclude-vcs --exclude=teste.txt --exclude=runtests.sh --exclude=output2dot.sh --exclude=$(ETAPA).tgz . 
 
 run: 
 	./etapa3 < teste.txt | ./output2dot.sh > saida.dot 

@@ -1,0 +1,6 @@
+*.tab.*
+lex.yy.c
+*.dot
+etapa3
+output2dot.sh
+/obj

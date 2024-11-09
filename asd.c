@@ -21,10 +21,23 @@ asd_tree_t *asd_new(const char *label)
     ret->label = strdup(label);
     ret->number_of_children = 0;
     ret->children = NULL;
+    ret->next = NULL;
   }
   return ret;
 }
 
+void asd_next(asd_tree_t *tree, asd_tree_t *next, int expected_num_of_children)
+{
+  if(tree != NULL && next != NULL){
+    if(next->number_of_children<expected_num_of_children){
+      tree->next=next;
+    } else if(next->number_of_children==expected_num_of_children){
+      asd_next(tree,next->children[expected_num_of_children-1],expected_num_of_children);
+    } else {
+      printf("ERROR:Numero de filhos maior do que informado");
+    }
+  }
+}
 void asd_free(asd_tree_t *tree)
 {
   if (tree != NULL){

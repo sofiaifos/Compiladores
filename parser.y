@@ -110,7 +110,14 @@ parametro: TK_IDENTIFICADOR '<' '-' tipagem;
 tipagem: TK_PR_INT | TK_PR_FLOAT;
 
 bloco_de_comandos: '{' lista_de_comandos '}' {$$=$2;};
-lista_de_comandos: comando lista_de_comandos{if($1!=NULL){$$=$1;asd_add_child($$,$2);}else{$$=$2;}}
+lista_de_comandos: comando lista_de_comandos{
+    if($1!=NULL){
+        $$=$1;
+        /*se o campo next foi inicializado (no caso da declaracao_de_variavel), significa que o comando tem
+        uma subarvore de comandos e que o proximo deve ser colocado ao fim dela*/
+        if($$->next!=NULL){asd_add_child($$->next,$2);
+        } else{asd_add_child($$,$2);}
+    }else{$$=$2;}}
 | /*vazia*/ {$$ = NULL;};
 
 
@@ -127,14 +134,14 @@ comando_simples: declaracao_de_variavel {if($1!=NULL){$$ = $1;}}
 
 
 /* --------------- Declaração de variável --------------- */
-declaracao_de_variavel: tipagem lista_de_identificadores {$$=$2;};
+declaracao_de_variavel: tipagem lista_de_identificadores {$$=$2;asd_next($2,$2,3);};
 
 variavel: TK_IDENTIFICADOR {$$ = NULL;}
 | TK_IDENTIFICADOR TK_OC_LE literal {$$ = asd_new("<="); asd_tree_t *l = asd_new($1.valor); asd_add_child($$,l);asd_add_child($$,$3);};
 literal: TK_LIT_INT { $$ = asd_new($1.valor);}
 | TK_LIT_FLOAT      { $$ = asd_new($1.valor);};
 
-lista_de_identificadores: variavel ',' lista_de_identificadores{if($1!=NULL){$$=$1;asd_add_child($$,$3);}else{$$=$3;}}
+lista_de_identificadores: variavel ',' lista_de_identificadores{if($1!=NULL){$$=$1;asd_add_child($$,$3);}else {$$=$3;}}
 | variavel {if($1!=NULL){$$ = $1;}};
 
 

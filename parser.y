@@ -25,7 +25,7 @@ void yyerror (char const *mensagem);
 }
 
 %union{
-	struct valor valor_lexico;
+	struct valor *valor_lexico;
 	asd_tree_t *nodo;
 }
 
@@ -88,8 +88,14 @@ void yyerror (char const *mensagem);
 
 %%
 
+/* ---------------------- Não terminais para gerenciamento de escopo --------------------- */
+
+empilha_tabela:{/*cria tabela do escopo e empilha*/}
+desempilha_tabela:{/*desempilhar*/}
+criar_pilha: {/*criar pilha em variavael global no parser.y*/}
+
 /* --------------- Programa --------------- */
-programa: lista_de_funcoes {$$ = $1;arvore=$$;}
+programa: criar_pilha empilha_tabela lista_de_funcoes desempilha_tabela {$$ = $3;arvore=$$;}
 | /* vazio */ {$$=NULL;arvore=$$;};
 
 lista_de_funcoes: funcao lista_de_funcoes {$$=$1;asd_add_child($$,$2);}
@@ -97,19 +103,19 @@ lista_de_funcoes: funcao lista_de_funcoes {$$=$1;asd_add_child($$,$2);}
 
 
 /* --------------- Função --------------- */
-funcao: cabecalho corpo {$$=$1;asd_add_child($$,$2);};
+funcao: cabecalho corpo desempilha_tabela {$$=$1;asd_add_child($$,$2);};
 
-cabecalho: nome_da_funcao '=' lista_de_parametros '>' tipagem {$$=$1;};
-corpo: bloco_de_comandos {$$=$1;};
+cabecalho: nome_da_funcao '=' empilha_tabela lista_de_parametros '>' tipagem {$$=$1;/*colocar nome e tipo na tabela abaixo na pilha*/};
+corpo: '{' lista_de_comandos '}' {$$=$2;};
 
-nome_da_funcao: TK_IDENTIFICADOR {$$ = asd_new($1.valor);};
+nome_da_funcao: TK_IDENTIFICADOR {$$ = asd_new($1->valor);};
 
 lista_de_parametros: lista_de_parametros_nao_vazia | /*vazia*/;
 lista_de_parametros_nao_vazia: lista_de_parametros_nao_vazia TK_OC_OR parametro | parametro ;
-parametro: TK_IDENTIFICADOR '<' '-' tipagem;
+parametro: TK_IDENTIFICADOR '<' '-' tipagem {/*coloca na tabela no topo o identificador e tipo*/};
 tipagem: TK_PR_INT | TK_PR_FLOAT;
 
-bloco_de_comandos: '{' lista_de_comandos '}' {$$=$2;};
+bloco_de_comandos: '{' empilha_tabela lista_de_comandos desempilha_tabela'}' {$$=$3;};
 lista_de_comandos: comando lista_de_comandos{
     if($1!=NULL){
         $$=$1;
@@ -137,16 +143,16 @@ comando_simples: declaracao_de_variavel {if($1!=NULL){$$ = $1;}}
 declaracao_de_variavel: tipagem lista_de_identificadores {$$=$2;asd_next($2,$2,3);};
 
 variavel: TK_IDENTIFICADOR {$$ = NULL;}
-| TK_IDENTIFICADOR TK_OC_LE literal {$$ = asd_new("<="); asd_tree_t *l = asd_new($1.valor); asd_add_child($$,l);asd_add_child($$,$3);};
-literal: TK_LIT_INT { $$ = asd_new($1.valor);}
-| TK_LIT_FLOAT      { $$ = asd_new($1.valor);};
+| TK_IDENTIFICADOR TK_OC_LE literal {$$ = asd_new("<="); asd_tree_t *l = asd_new($1->valor); asd_add_child($$,l);asd_add_child($$,$3);};
+literal: TK_LIT_INT { $$ = asd_new($1->valor);}
+| TK_LIT_FLOAT      { $$ = asd_new($1->valor);};
 
 lista_de_identificadores: variavel ',' lista_de_identificadores{if($1!=NULL){$$=$1;asd_add_child($$,$3);}else {$$=$3;}}
 | variavel {if($1!=NULL){$$ = $1;}};
 
 
 /* --------------- Comando de atribuição --------------- */
-atribuicao: TK_IDENTIFICADOR '=' expressao {$$ = asd_new("="); asd_tree_t *e = asd_new($1.valor); asd_add_child($$,e);asd_add_child($$,$3);};
+atribuicao: TK_IDENTIFICADOR '=' expressao {$$ = asd_new("="); asd_tree_t *e = asd_new($1->valor); asd_add_child($$,e);asd_add_child($$,$3);};
 
 
 /* --------------- Chamada de função --------------- */
@@ -215,7 +221,7 @@ expressao_unaria: operador_unario expressao_unaria {$$ = $1; asd_add_child($$, $
 expressao_parenteses: '(' expressao ')' {$$ = $2;}
 | operando {$$ = $1;};
 
-operando: TK_IDENTIFICADOR { $$ = asd_new($1.valor); }
+operando: TK_IDENTIFICADOR { $$ = asd_new($1->valor);}
 | literal {$$ = $1;} 
 | chamada_de_funcao {$$ = $1;};
 

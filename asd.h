@@ -42,11 +42,10 @@ void asd_print(asd_tree_t *tree);
 /*
  * Função novo_valor, cria um novo struct valor
  */
-struct valor novo_valor(int line_number, char *type, char *valor);
+struct valor *novo_valor(int line_number, char *type, char *valor);
 
 /*
  * Função asd_print_graphviz, idem, em formato DOT
  */
 void asd_print_graphviz (asd_tree_t *tree);
 #endif //_ARVORE_H_
-

@@ -5,7 +5,8 @@
 #define ARQUIVO_SAIDA "saida.dot"
 
 struct valor *novo_valor(int line_number, char *type, char *valor){
-	struct valor *novo;
+	struct valor *novo = NULL;
+  novo = calloc(1, sizeof(struct valor));
 	novo->linha = line_number;
 	novo->tipo = type;
 	novo->valor = valor;

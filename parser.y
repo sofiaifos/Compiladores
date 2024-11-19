@@ -88,11 +88,7 @@ void yyerror (char const *mensagem);
 
 %%
 
-/* ---------------------- Não terminais para gerenciamento de escopo --------------------- */
 
-empilha_tabela:{/*cria tabela do escopo e empilha*/}
-desempilha_tabela:{/*desempilhar*/}
-criar_pilha: {/*criar pilha em variavael global no parser.y*/}
 
 /* --------------- Programa --------------- */
 programa: criar_pilha empilha_tabela lista_de_funcoes desempilha_tabela {$$ = $3;arvore=$$;}
@@ -101,6 +97,11 @@ programa: criar_pilha empilha_tabela lista_de_funcoes desempilha_tabela {$$ = $3
 lista_de_funcoes: funcao lista_de_funcoes {$$=$1;asd_add_child($$,$2);}
 | funcao {$$=$1;};
 
+/* ---------------------- Não terminais para gerenciamento de escopo --------------------- */
+
+empilha_tabela:{/*cria tabela do escopo e empilha*/}
+desempilha_tabela:{/*desempilhar*/}
+criar_pilha: {/*criar pilha em variavael global no parser.y*/}
 
 /* --------------- Função --------------- */
 funcao: cabecalho corpo desempilha_tabela {$$=$1;asd_add_child($$,$2);};

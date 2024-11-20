@@ -1,5 +1,6 @@
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include "table.h"
 
 struct entry *nova_entrada(int linha, enum natures natureza, enum data_types tipo, char *valor){
@@ -86,3 +87,13 @@ void free_pilha(struct table_stack *pilha){
     }
 };
 
+void print_pilha(struct table_stack *pilha){
+    printf("-------------------\n");
+    if(pilha->topo != NULL){
+    for(int i=0;i<pilha->topo->numero_de_entradas;i++){
+        printf("Linha: %d, Tipo: %d, Valor: %s\n", pilha->topo->entradas[i]->linha, pilha->topo->entradas[i]->tipo,pilha->topo->entradas[i]->valor);
+    }}
+    if(pilha->resto!=NULL){
+        print_pilha(pilha->resto);
+    }
+}

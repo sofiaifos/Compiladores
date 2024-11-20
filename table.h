@@ -41,5 +41,6 @@ void free_tabela(struct table *tabela);
 
 void free_pilha(struct table_stack *pilha);
 
+void print_pilha(struct table_stack *pilha);
 
 #endif //_TABELA_H_

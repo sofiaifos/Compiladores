@@ -19,6 +19,7 @@ void yyerror (char const *mensagem);
     extern int yylineno;
     extern void *arvore;
     struct table_stack *pilha;
+    enum data_types tipo;
 %}
 
 %code requires{ 
@@ -108,15 +109,15 @@ criar_pilha: {pilha = nova_pilha();}
 /* --------------- Função --------------- */
 funcao: cabecalho corpo desempilha_tabela {$$=$1;ast_add_filho($$,$2);};
 
-cabecalho: nome_da_funcao '=' empilha_tabela lista_de_parametros '>' tipagem {$$=$1;/*colocar nome e tipo na tabela abaixo na pilha*/};
+cabecalho: nome_da_funcao '=' empilha_tabela lista_de_parametros '>' tipagem {$$=$1;struct entry *func = nova_entrada(yylineno,FUNCAO,tipo,$$->label); add_entrada(pilha->resto->topo,func);};
 corpo: '{' lista_de_comandos '}' {$$=$2;};
 
 nome_da_funcao: TK_IDENTIFICADOR {$$ = ast_new($1->valor);};
 
 lista_de_parametros: lista_de_parametros_nao_vazia | /*vazia*/;
 lista_de_parametros_nao_vazia: lista_de_parametros_nao_vazia TK_OC_OR parametro | parametro ;
-parametro: TK_IDENTIFICADOR '<' '-' tipagem {/*coloca na tabela no topo o identificador e tipo*/};
-tipagem: TK_PR_INT | TK_PR_FLOAT;
+parametro: TK_IDENTIFICADOR '<' '-' tipagem {struct entry *param = nova_entrada(yylineno,VARIAVEL,tipo,$1->valor);add_entrada(pilha->topo,param);};
+tipagem: TK_PR_INT {tipo=INT;}| TK_PR_FLOAT{tipo=FLOAT;};
 
 bloco_de_comandos: '{' empilha_tabela lista_de_comandos desempilha_tabela'}' {$$=$3;};
 lista_de_comandos: comando lista_de_comandos{
@@ -145,8 +146,8 @@ comando_simples: declaracao_de_variavel {if($1!=NULL){$$ = $1;}}
 /* --------------- Declaração de variável --------------- */
 declaracao_de_variavel: tipagem lista_de_identificadores {$$=$2;ast_prox($2,$2,3);};
 
-variavel: TK_IDENTIFICADOR {$$ = NULL;}
-| TK_IDENTIFICADOR TK_OC_LE literal {$$ = ast_new("<="); ast_t *l = ast_new($1->valor); ast_add_filho($$,l);ast_add_filho($$,$3);};
+variavel: TK_IDENTIFICADOR {$$ = NULL;struct entry *var = nova_entrada(yylineno,VARIAVEL,tipo,$1->valor);add_entrada(pilha->topo,var);}
+| TK_IDENTIFICADOR TK_OC_LE literal {$$ = ast_new("<="); ast_t *l = ast_new($1->valor); ast_add_filho($$,l);ast_add_filho($$,$3);$$ = NULL;struct entry *var = nova_entrada(yylineno,VARIAVEL,tipo,$1->valor);add_entrada(pilha->topo,var);};
 literal: TK_LIT_INT { $$ = ast_new($1->valor);}
 | TK_LIT_FLOAT      { $$ = ast_new($1->valor);};
 

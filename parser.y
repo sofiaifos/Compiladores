@@ -1,6 +1,6 @@
 /* ----------------------------------------------------- */
 /* --------------- Projeto de Compilador --------------- */
-/* --------------- E3 de criação de AST ---------------- */
+/* -------------- E4 de análise semântica -------------- */
 /* ----------------------------------------------------- */
 /* -------- Integrantes --------------------------------
 
@@ -18,15 +18,17 @@ void yyerror (char const *mensagem);
 %{
     extern int yylineno;
     extern void *arvore;
+    struct table_stack *pilha;
 %}
 
 %code requires{ 
-    #include "asd.h"
+    #include "ast.h"
+    #include "table.h"
 }
 
 %union{
-	struct valor *valor_lexico;
-	asd_tree_t *nodo;
+	struct value *valor_lexico;
+	ast_t *nodo;
 }
 
 %token TK_PR_INT
@@ -94,22 +96,22 @@ void yyerror (char const *mensagem);
 programa: criar_pilha empilha_tabela lista_de_funcoes desempilha_tabela {$$ = $3;arvore=$$;}
 | /* vazio */ {$$=NULL;arvore=$$;};
 
-lista_de_funcoes: funcao lista_de_funcoes {$$=$1;asd_add_child($$,$2);}
+lista_de_funcoes: funcao lista_de_funcoes {$$=$1;ast_add_filho($$,$2);}
 | funcao {$$=$1;};
 
 /* ---------------------- Não terminais para gerenciamento de escopo --------------------- */
 
-empilha_tabela:{/*cria tabela do escopo e empilha*/}
-desempilha_tabela:{/*desempilhar*/}
-criar_pilha: {/*criar pilha em variavael global no parser.y*/}
+empilha_tabela:{struct table *tabela = nova_tabela(); push(&pilha,tabela);}
+desempilha_tabela:{pop(pilha);}
+criar_pilha: {pilha = nova_pilha();}
 
 /* --------------- Função --------------- */
-funcao: cabecalho corpo desempilha_tabela {$$=$1;asd_add_child($$,$2);};
+funcao: cabecalho corpo desempilha_tabela {$$=$1;ast_add_filho($$,$2);};
 
 cabecalho: nome_da_funcao '=' empilha_tabela lista_de_parametros '>' tipagem {$$=$1;/*colocar nome e tipo na tabela abaixo na pilha*/};
 corpo: '{' lista_de_comandos '}' {$$=$2;};
 
-nome_da_funcao: TK_IDENTIFICADOR {$$ = asd_new($1->valor);};
+nome_da_funcao: TK_IDENTIFICADOR {$$ = ast_new($1->valor);};
 
 lista_de_parametros: lista_de_parametros_nao_vazia | /*vazia*/;
 lista_de_parametros_nao_vazia: lista_de_parametros_nao_vazia TK_OC_OR parametro | parametro ;
@@ -122,8 +124,8 @@ lista_de_comandos: comando lista_de_comandos{
         $$=$1;
         /*se o campo next foi inicializado (no caso da declaracao_de_variavel), significa que o comando tem
         uma subarvore de comandos e que o proximo deve ser colocado ao fim dela*/
-        if($$->next!=NULL){asd_add_child($$->next,$2);
-        } else{asd_add_child($$,$2);}
+        if($$->prox!=NULL){ast_add_filho($$->prox,$2);
+        } else{ast_add_filho($$,$2);}
     }else{$$=$2;}}
 | /*vazia*/ {$$ = NULL;};
 
@@ -141,29 +143,29 @@ comando_simples: declaracao_de_variavel {if($1!=NULL){$$ = $1;}}
 
 
 /* --------------- Declaração de variável --------------- */
-declaracao_de_variavel: tipagem lista_de_identificadores {$$=$2;asd_next($2,$2,3);};
+declaracao_de_variavel: tipagem lista_de_identificadores {$$=$2;ast_prox($2,$2,3);};
 
 variavel: TK_IDENTIFICADOR {$$ = NULL;}
-| TK_IDENTIFICADOR TK_OC_LE literal {$$ = asd_new("<="); asd_tree_t *l = asd_new($1->valor); asd_add_child($$,l);asd_add_child($$,$3);};
-literal: TK_LIT_INT { $$ = asd_new($1->valor);}
-| TK_LIT_FLOAT      { $$ = asd_new($1->valor);};
+| TK_IDENTIFICADOR TK_OC_LE literal {$$ = ast_new("<="); ast_t *l = ast_new($1->valor); ast_add_filho($$,l);ast_add_filho($$,$3);};
+literal: TK_LIT_INT { $$ = ast_new($1->valor);}
+| TK_LIT_FLOAT      { $$ = ast_new($1->valor);};
 
-lista_de_identificadores: variavel ',' lista_de_identificadores{if($1!=NULL){$$=$1;asd_add_child($$,$3);}else {$$=$3;}}
+lista_de_identificadores: variavel ',' lista_de_identificadores{if($1!=NULL){$$=$1;ast_add_filho($$,$3);}else {$$=$3;}}
 | variavel {if($1!=NULL){$$ = $1;}};
 
 
 /* --------------- Comando de atribuição --------------- */
-atribuicao: TK_IDENTIFICADOR '=' expressao {$$ = asd_new("="); asd_tree_t *e = asd_new($1->valor); asd_add_child($$,e);asd_add_child($$,$3);};
+atribuicao: TK_IDENTIFICADOR '=' expressao {$$ = ast_new("="); ast_t *e = ast_new($1->valor); ast_add_filho($$,e);ast_add_filho($$,$3);};
 
 
 /* --------------- Chamada de função --------------- */
-chamada_de_funcao: nome_da_funcao '(' lista_de_argumentos ')' {int len = strlen($1->label);char call[5+len]; strcpy(call,"call "); strcat(call,$1->label);$$=asd_new(call); asd_add_child($$,$3);};
+chamada_de_funcao: nome_da_funcao '(' lista_de_argumentos ')' {int len = strlen($1->label);char call[5+len]; strcpy(call,"call "); strcat(call,$1->label);$$=ast_new(call); ast_add_filho($$,$3);};
 lista_de_argumentos:  expressao {$$=$1;}
-| expressao ',' lista_de_argumentos {$$=$1;asd_add_child($$,$3);};
+| expressao ',' lista_de_argumentos {$$=$1;ast_add_filho($$,$3);};
 
 
 /* --------------- Comando de retorno --------------- */
-retorno: TK_PR_RETURN expressao {$$=asd_new("return"); asd_add_child($$,$2);};
+retorno: TK_PR_RETURN expressao {$$=ast_new("return"); ast_add_filho($$,$2);};
 
 
 /* --------------- Comandos de controle de fluxo --------------- */
@@ -172,57 +174,57 @@ controle_de_fluxo: condicional {$$ = $1;}
 
 
 /* --------------- Condicional --------------- */
-condicional: TK_PR_IF '(' expressao ')' bloco_de_comandos condicional_else {$$=asd_new("if");asd_add_child($$,$3);if($5!=NULL){asd_add_child($$,$5);};if($6!=NULL){asd_add_child($$,$6);}};  
+condicional: TK_PR_IF '(' expressao ')' bloco_de_comandos condicional_else {$$=ast_new("if");ast_add_filho($$,$3);if($5!=NULL){ast_add_filho($$,$5);};if($6!=NULL){ast_add_filho($$,$6);}};  
 condicional_else: TK_PR_ELSE bloco_de_comandos {if($2!=NULL){$$=$2;}}
 | /*vazio*/ {$$=NULL;};
 
 
 /* --------------- Iterativo --------------- */
-iterativo: TK_PR_WHILE '(' expressao ')' bloco_de_comandos { $$=asd_new("while"); asd_add_child($$,$3); if($5!=NULL){asd_add_child($$,$5);}};
+iterativo: TK_PR_WHILE '(' expressao ')' bloco_de_comandos { $$=ast_new("while"); ast_add_filho($$,$3); if($5!=NULL){ast_add_filho($$,$5);}};
 
 
 /* --------------- Expressões --------------- */
 expressao: expressao_or {$$ = $1;};
 
-expressao_or: expressao_or TK_OC_OR expressao_and {$$ = asd_new("|"); asd_add_child($$, $1); asd_add_child($$, $3);}
+expressao_or: expressao_or TK_OC_OR expressao_and {$$ = ast_new("|"); ast_add_filho($$, $1); ast_add_filho($$, $3);}
 | expressao_and {$$ = $1;};
 
-expressao_and: expressao_and TK_OC_AND expressao_eq {$$ = asd_new("&"); asd_add_child($$, $1); asd_add_child($$, $3);}
+expressao_and: expressao_and TK_OC_AND expressao_eq {$$ = ast_new("&"); ast_add_filho($$, $1); ast_add_filho($$, $3);}
 | expressao_eq {$$ = $1;};
 
-operador_eq: TK_OC_EQ {$$ = asd_new("==");}
-| TK_OC_NE {$$ = asd_new("!=");};
-expressao_eq: expressao_eq operador_eq expressao_comparacao {$$ = $2; asd_add_child($$, $1); asd_add_child($$, $3);}
+operador_eq: TK_OC_EQ {$$ = ast_new("==");}
+| TK_OC_NE {$$ = ast_new("!=");};
+expressao_eq: expressao_eq operador_eq expressao_comparacao {$$ = $2; ast_add_filho($$, $1); ast_add_filho($$, $3);}
 | expressao_comparacao {$$ = $1;};
 
-operador_comparacao: '<' {$$ = asd_new("<");}
-| '>' {$$ = asd_new(">");}
-| TK_OC_LE {$$ = asd_new("<=");}
-| TK_OC_GE {$$ = asd_new(">=");};
-expressao_comparacao: expressao_comparacao operador_comparacao expressao_soma {$$ = $2; asd_add_child($$, $1); asd_add_child($$, $3);}
+operador_comparacao: '<' {$$ = ast_new("<");}
+| '>' {$$ = ast_new(">");}
+| TK_OC_LE {$$ = ast_new("<=");}
+| TK_OC_GE {$$ = ast_new(">=");};
+expressao_comparacao: expressao_comparacao operador_comparacao expressao_soma {$$ = $2; ast_add_filho($$, $1); ast_add_filho($$, $3);}
 | expressao_soma {$$ = $1;};
 
-operador_soma: '+' {$$ = asd_new("+");}
-| '-' {$$ = asd_new("-");};
-expressao_soma: expressao_soma operador_soma expressao_multiplicacao {$$ = $2; asd_add_child($$, $1); asd_add_child($$, $3);}
+operador_soma: '+' {$$ = ast_new("+");}
+| '-' {$$ = ast_new("-");};
+expressao_soma: expressao_soma operador_soma expressao_multiplicacao {$$ = $2; ast_add_filho($$, $1); ast_add_filho($$, $3);}
 | expressao_multiplicacao {$$ = $1;};
 
-operador_multiplicacao: '*' {$$ = asd_new("*");} 
-| '/' {$$ = asd_new("/");}
-| '%' {$$ = asd_new("%");};
-expressao_multiplicacao: expressao_multiplicacao operador_multiplicacao expressao_unaria {$$ = $2; asd_add_child($$, $1); asd_add_child($$, $3);}
+operador_multiplicacao: '*' {$$ = ast_new("*");} 
+| '/' {$$ = ast_new("/");}
+| '%' {$$ = ast_new("%");};
+expressao_multiplicacao: expressao_multiplicacao operador_multiplicacao expressao_unaria {$$ = $2; ast_add_filho($$, $1); ast_add_filho($$, $3);}
 | expressao_unaria {$$ = $1;}; 
 
-operador_unario: '!' {$$ = asd_new("!");}
-| '-' {$$ = asd_new("-");}; 
+operador_unario: '!' {$$ = ast_new("!");}
+| '-' {$$ = ast_new("-");}; 
 
-expressao_unaria: operador_unario expressao_unaria {$$ = $1; asd_add_child($$, $2);}
+expressao_unaria: operador_unario expressao_unaria {$$ = $1; ast_add_filho($$, $2);}
 | expressao_parenteses {$$ = $1;};
 
 expressao_parenteses: '(' expressao ')' {$$ = $2;}
 | operando {$$ = $1;};
 
-operando: TK_IDENTIFICADOR { $$ = asd_new($1->valor);}
+operando: TK_IDENTIFICADOR { $$ = ast_new($1->valor);}
 | literal {$$ = $1;} 
 | chamada_de_funcao {$$ = $1;};
 

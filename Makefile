@@ -1,6 +1,6 @@
 CC=gcc
 ETAPA=etapa3
-_OBJ=lex.yy.o parser.tab.o main.o asd.o
+_OBJ=lex.yy.o parser.tab.o main.o ast.o table.o
 ODIR=obj
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 PARSER=parser.tab.c parser.tab.h
@@ -13,8 +13,11 @@ $(ODIR)/%.o: %.c $(DEPS)
 	mkdir -p $(ODIR)
 	$(CC) -c -o $@ $<
 
-asd: asd.h asd.c 
-	gcc -fsanitize=address -g -Werror -o asd asd.c 
+ast: ast.h ast.c 
+	gcc -fsanitize=address -g -Werror -o ast ast.c 
+
+table: table.h table.c
+	gcc -fsanitize=address -g -Werror -o table table.c
 
 lex.yy.c: scanner.l
 		flex scanner.l

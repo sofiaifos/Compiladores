@@ -28,7 +28,7 @@ typedef struct ast {
 /*
  * Função ast_new, cria um nó sem filhos com o label informado.
  */
-ast_t *ast_new(const char *label);
+ast_t *ast_new(const char *label, enum data_types tipo);
 
 /*
  * Função ast_prox, busca recursivamente o primeiro filho em arvore que tem menos filhos que informado e adiciona ao atributo prox
@@ -54,4 +54,7 @@ struct value *novo_valor(int linha, enum token_types tipo, char *valor);
  * Função asd_print, imprime a arvore
  */
 void asd_print (ast_t *arvore);
+
+enum data_types inferencia_tipos(enum data_types tipo1, enum data_types tipo2);
+
 #endif //_ARVORE_H_

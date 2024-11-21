@@ -14,7 +14,7 @@ struct value *novo_valor(int linha, enum token_types tipo, char *valor){
 };
 
 
-ast_t *ast_new(const char *label)
+ast_t *ast_new(const char *label, enum data_types tipo)
 {
   ast_t *ret = NULL;
   ret = calloc(1, sizeof(ast_t));
@@ -23,6 +23,7 @@ ast_t *ast_new(const char *label)
     ret->numero_de_filhos = 0;
     ret->filhos = NULL;
     ret->prox = NULL;
+    ret->tipo = tipo;
   }
   return ret;
 }
@@ -66,7 +67,7 @@ static void _asd_print (ast_t *arvore)
 {
   int i;
   if (arvore != NULL){
-    printf("  %p [label=\"%s\"];\n", arvore, arvore->label);
+    printf("  %p [label=\"%s\"];\n", arvore, arvore->label, arvore->tipo);
     for (i = 0; i < arvore->numero_de_filhos; i++){
       printf("  %p,%p\n", arvore, arvore->filhos[i]);
       _asd_print(arvore->filhos[i]);
@@ -78,5 +79,13 @@ void asd_print (ast_t *arvore)
 {
   if (arvore != NULL){
     _asd_print (arvore);
+  }
+}
+
+enum data_types inferencia_tipos(enum data_types tipo1, enum data_types tipo2){
+  if(tipo2>tipo1){
+    return tipo2;
+  } else{
+    return tipo1;
   }
 }

@@ -1,6 +1,6 @@
 /* ----------------------------------------------------- */
 /* --------------- Projeto de Compilador --------------- */
-/* --------------- E3 de criação de AST ---------------- */
+/* -------------- E4 de análise semântica -------------- */
 /* ----------------------------------------------------- */
 /* -------- Integrantes --------------------------------
 
@@ -12,21 +12,29 @@
 %{
     #include <stdio.h>
     #include <string.h>
+    #include <stdlib.h>
 int yylex(void);
 void yyerror (char const *mensagem);
 %}
 %{
+
     extern int yylineno;
     extern void *arvore;
+    extern struct table_stack *pilha;
+    int yydebug = 1;
+    enum data_types tipo_atual;
 %}
 
 %code requires{ 
-    #include "asd.h"
+    #include "ast.h"
+    #include "table.h"
+    #include "errors.h"
 }
 
 %union{
-	struct valor valor_lexico;
-	asd_tree_t *nodo;
+	struct value *valor_lexico;
+	ast_t *nodo;
+    enum data_types tipo;
 }
 
 %token TK_PR_INT
@@ -45,6 +53,8 @@ void yyerror (char const *mensagem);
 %token<valor_lexico> TK_LIT_INT
 %token<valor_lexico> TK_LIT_FLOAT
 %token TK_ERRO
+
+%type<tipo> tipagem
 
 %type<nodo> programa
 %type<nodo> lista_de_funcoes   
@@ -86,37 +96,71 @@ void yyerror (char const *mensagem);
 
 %define parse.error verbose
 
+
+
 %%
 
+
+
 /* --------------- Programa --------------- */
-programa: lista_de_funcoes {$$ = $1;arvore=$$;}
+programa: criar_pilha empilha_tabela lista_de_funcoes desempilha_tabela {$$ = $3;arvore=$$;}
 | /* vazio */ {$$=NULL;arvore=$$;};
 
-lista_de_funcoes: funcao lista_de_funcoes {$$=$1;asd_add_child($$,$2);}
+lista_de_funcoes: funcao lista_de_funcoes {$$=$1;ast_add_filho($$,$2);}
 | funcao {$$=$1;};
 
+/* ---------------------- Não terminais para gerenciamento de escopo --------------------- */
+
+empilha_tabela:{struct table *tabela = nova_tabela(); push(&pilha,tabela);}
+desempilha_tabela:{pop(pilha);}
+criar_pilha: {pilha = nova_pilha();}
 
 /* --------------- Função --------------- */
-funcao: cabecalho corpo {$$=$1;asd_add_child($$,$2);};
+funcao: cabecalho corpo desempilha_tabela {$$=$1;ast_add_filho($$,$2);};
 
-cabecalho: nome_da_funcao '=' lista_de_parametros '>' tipagem {$$=$1;};
-corpo: bloco_de_comandos {$$=$1;};
+cabecalho: nome_da_funcao '=' empilha_tabela lista_de_parametros '>' tipagem {
+    $$=$1;
+    struct entry *func = calloc(1, sizeof(struct entry));
+    func = search_tabela(pilha->resto->topo,$$->label);
+    if(func!=NULL){
+        printf("Erro na linha %d, identificador %s já declarado na linha %d\n", yylineno, func->valor, func->linha);
+        exit(ERR_DECLARED);
+    } else { 
+    func = nova_entrada(yylineno,FUNCAO,$6,$$->label); 
+    add_entrada(pilha->resto->topo,func);
+    $$->tipo = $6;
+    }
+};
 
-nome_da_funcao: TK_IDENTIFICADOR {$$ = asd_new($1.valor);};
+corpo: '{' lista_de_comandos '}' {$$=$2;};
+
+nome_da_funcao: TK_IDENTIFICADOR {$$ = ast_new($1->valor);};
 
 lista_de_parametros: lista_de_parametros_nao_vazia | /*vazia*/;
-lista_de_parametros_nao_vazia: lista_de_parametros_nao_vazia TK_OC_OR parametro | parametro ;
-parametro: TK_IDENTIFICADOR '<' '-' tipagem;
-tipagem: TK_PR_INT | TK_PR_FLOAT;
 
-bloco_de_comandos: '{' lista_de_comandos '}' {$$=$2;};
+lista_de_parametros_nao_vazia: lista_de_parametros_nao_vazia TK_OC_OR parametro | parametro;
+
+parametro: TK_IDENTIFICADOR '<' '-' tipagem {
+    struct entry *param = calloc(1, sizeof(struct entry));
+    param = search_tabela(pilha->topo, $1->valor);
+    if (param != NULL){
+        printf("Erro na linha %d, parâmetro %s já declarado", yylineno, $1->valor);
+        exit(ERR_DECLARED);
+    } else {
+    param = nova_entrada(yylineno,VARIAVEL,FLOAT,$1->valor);
+    add_entrada(pilha->topo,param);
+    }
+};
+tipagem: TK_PR_INT {$$=INT; tipo_atual = INT;}| TK_PR_FLOAT{$$=FLOAT; tipo_atual = FLOAT;};
+
+bloco_de_comandos: '{' empilha_tabela lista_de_comandos desempilha_tabela'}' {$$=$3;};
 lista_de_comandos: comando lista_de_comandos{
     if($1!=NULL){
         $$=$1;
         /*se o campo next foi inicializado (no caso da declaracao_de_variavel), significa que o comando tem
         uma subarvore de comandos e que o proximo deve ser colocado ao fim dela*/
-        if($$->next!=NULL){asd_add_child($$->next,$2);
-        } else{asd_add_child($$,$2);}
+        if($$->prox!=NULL){ast_add_filho($$->prox,$2);
+        } else{ast_add_filho($$,$2);}
     }else{$$=$2;}}
 | /*vazia*/ {$$ = NULL;};
 
@@ -134,29 +178,100 @@ comando_simples: declaracao_de_variavel {if($1!=NULL){$$ = $1;}}
 
 
 /* --------------- Declaração de variável --------------- */
-declaracao_de_variavel: tipagem lista_de_identificadores {$$=$2;asd_next($2,$2,3);};
+declaracao_de_variavel: tipagem lista_de_identificadores {
+    if($2!=NULL){$2->tipo=$1;};
+    $$=$2;
+    ast_prox($2,$2,3);
+};
 
-variavel: TK_IDENTIFICADOR {$$ = NULL;}
-| TK_IDENTIFICADOR TK_OC_LE literal {$$ = asd_new("<="); asd_tree_t *l = asd_new($1.valor); asd_add_child($$,l);asd_add_child($$,$3);};
-literal: TK_LIT_INT { $$ = asd_new($1.valor);}
-| TK_LIT_FLOAT      { $$ = asd_new($1.valor);};
-
-lista_de_identificadores: variavel ',' lista_de_identificadores{if($1!=NULL){$$=$1;asd_add_child($$,$3);}else {$$=$3;}}
+lista_de_identificadores: variavel ',' lista_de_identificadores{
+    if($1!=NULL){
+        $$=$1;ast_add_filho($$,$3);
+    } else {
+    $$=$3;}}
 | variavel {if($1!=NULL){$$ = $1;}};
 
+variavel: TK_IDENTIFICADOR {
+    $$ = NULL;
+    struct entry *var = calloc(1, sizeof(struct entry));
+    var = search_tabela(pilha->topo,$1->valor);
+    if(var != NULL){
+        printf("Erro na linha %d, identificador %s já foi declarado na linha %d", yylineno, $1->valor, $1->linha);
+        exit(ERR_DECLARED);
+    } else {
+    var = nova_entrada(yylineno,VARIAVEL,tipo_atual,$1->valor);
+    add_entrada(pilha->topo,var);
+    }
+}
+| TK_IDENTIFICADOR TK_OC_LE literal {
+    struct entry *var = calloc(1, sizeof(struct entry));
+    var = search_tabela(pilha->topo,$1->valor);
+    if(var != NULL){
+        printf("Erro na linha %d, identificador %s já foi declarado na linha %d", yylineno, $1->valor, $1->linha);
+        exit(ERR_DECLARED);
+    } else {
+        $$ = ast_new("<="); 
+        $$->tipo = tipo_atual; 
+        ast_t *l = ast_new($1->valor); 
+        l->tipo = tipo_atual; 
+        ast_add_filho($$,l);
+        ast_add_filho($$,$3);
+        var = nova_entrada(yylineno,VARIAVEL,tipo_atual,$1->valor);
+        add_entrada(pilha->topo,var);
+    }
+};
+
+literal: TK_LIT_INT {$$ = ast_new($1->valor); $$->tipo = INT;}
+| TK_LIT_FLOAT      {$$ = ast_new($1->valor); $$->tipo = FLOAT;};
 
 /* --------------- Comando de atribuição --------------- */
-atribuicao: TK_IDENTIFICADOR '=' expressao {$$ = asd_new("="); asd_tree_t *e = asd_new($1.valor); asd_add_child($$,e);asd_add_child($$,$3);};
+atribuicao: TK_IDENTIFICADOR '=' expressao {
+    struct entry *def = malloc(sizeof(struct entry)); 
+    def = search_pilha(pilha,$1->valor); 
+    if(def==NULL){
+        printf("Erro na linha %d, atribuição feita para variável não declarada\n", yylineno);
+        exit(ERR_UNDECLARED);
+        }else if(def->natureza != VARIAVEL){
+            printf("Erro na linha %d, atribuição feita para função\n",yylineno);
+            exit(ERR_FUNCTION);
+            } else {
+                $$ = ast_new("="); 
+                $$->tipo=def->tipo; 
+                ast_t *e = ast_new($1->valor); 
+                e->tipo = def->tipo; 
+                ast_add_filho($$,e);
+                ast_add_filho($$,$3);
+                }
+    };
 
 
 /* --------------- Chamada de função --------------- */
-chamada_de_funcao: nome_da_funcao '(' lista_de_argumentos ')' {int len = strlen($1->label);char call[5+len]; strcpy(call,"call "); strcat(call,$1->label);$$=asd_new(call); asd_add_child($$,$3);};
+chamada_de_funcao: nome_da_funcao '(' lista_de_argumentos ')' {
+    int len = strlen($1->label);
+    char call[5+len]; 
+    strcpy(call,"call "); 
+    strcat(call,$1->label); 
+    struct entry *s = calloc(1, sizeof(struct entry)); 
+    s=search_pilha(pilha,$1->label); 
+    if(s==NULL){
+        printf("Erro na linha %d, função %s não existe\n", yylineno, $1->label);
+        exit(ERR_UNDECLARED);
+        } else if(s->natureza != FUNCAO){
+            printf("Erro na linha %d, %s não é uma função\n",yylineno,$1->label);
+            exit(ERR_VARIABLE);
+            } else{
+                $$=ast_new(call); 
+                $$->tipo=s->tipo; 
+                ast_add_filho($$,$3);
+                }
+    };
+
 lista_de_argumentos:  expressao {$$=$1;}
-| expressao ',' lista_de_argumentos {$$=$1;asd_add_child($$,$3);};
+| expressao ',' lista_de_argumentos {$$=$1;ast_add_filho($$,$3);};
 
 
 /* --------------- Comando de retorno --------------- */
-retorno: TK_PR_RETURN expressao {$$=asd_new("return"); asd_add_child($$,$2);};
+retorno: TK_PR_RETURN expressao {$$=ast_new("return"); ast_add_filho($$,$2);};
 
 
 /* --------------- Comandos de controle de fluxo --------------- */
@@ -165,57 +280,116 @@ controle_de_fluxo: condicional {$$ = $1;}
 
 
 /* --------------- Condicional --------------- */
-condicional: TK_PR_IF '(' expressao ')' bloco_de_comandos condicional_else {$$=asd_new("if");asd_add_child($$,$3);if($5!=NULL){asd_add_child($$,$5);};if($6!=NULL){asd_add_child($$,$6);}};  
+condicional: TK_PR_IF '(' expressao ')' bloco_de_comandos condicional_else {
+    $$=ast_new("if");
+    ast_add_filho($$,$3);
+    if($5!=NULL){
+        ast_add_filho($$,$5);
+        };
+    if($6!=NULL){
+        ast_add_filho($$,$6);
+        }
+};
+
 condicional_else: TK_PR_ELSE bloco_de_comandos {if($2!=NULL){$$=$2;}}
 | /*vazio*/ {$$=NULL;};
 
 
 /* --------------- Iterativo --------------- */
-iterativo: TK_PR_WHILE '(' expressao ')' bloco_de_comandos { $$=asd_new("while"); asd_add_child($$,$3); if($5!=NULL){asd_add_child($$,$5);}};
-
+iterativo: TK_PR_WHILE '(' expressao ')' bloco_de_comandos { 
+    $$=ast_new("while"); 
+    ast_add_filho($$,$3); 
+    if($5!=NULL){
+        ast_add_filho($$,$5);
+        }
+    };
 
 /* --------------- Expressões --------------- */
 expressao: expressao_or {$$ = $1;};
 
-expressao_or: expressao_or TK_OC_OR expressao_and {$$ = asd_new("|"); asd_add_child($$, $1); asd_add_child($$, $3);}
+expressao_or: expressao_or TK_OC_OR expressao_and {
+    $$ = ast_new("|"); 
+    $$->tipo = inferencia_tipos($1->tipo,$3->tipo); 
+    ast_add_filho($$, $1); 
+    ast_add_filho($$, $3);
+    }
 | expressao_and {$$ = $1;};
 
-expressao_and: expressao_and TK_OC_AND expressao_eq {$$ = asd_new("&"); asd_add_child($$, $1); asd_add_child($$, $3);}
+expressao_and: expressao_and TK_OC_AND expressao_eq {
+    $$ = ast_new("&"); 
+    $$->tipo = inferencia_tipos($1->tipo,$3->tipo); 
+    ast_add_filho($$, $1); 
+    ast_add_filho($$, $3);
+    }
 | expressao_eq {$$ = $1;};
 
-operador_eq: TK_OC_EQ {$$ = asd_new("==");}
-| TK_OC_NE {$$ = asd_new("!=");};
-expressao_eq: expressao_eq operador_eq expressao_comparacao {$$ = $2; asd_add_child($$, $1); asd_add_child($$, $3);}
+operador_eq: TK_OC_EQ {$$ = ast_new("==");}
+| TK_OC_NE {$$ = ast_new("!=");};
+expressao_eq: expressao_eq operador_eq expressao_comparacao {
+    $$ = $2; 
+    $$->tipo = inferencia_tipos($1->tipo,$3->tipo); 
+    ast_add_filho($$, $1); 
+    ast_add_filho($$, $3);
+    }
 | expressao_comparacao {$$ = $1;};
 
-operador_comparacao: '<' {$$ = asd_new("<");}
-| '>' {$$ = asd_new(">");}
-| TK_OC_LE {$$ = asd_new("<=");}
-| TK_OC_GE {$$ = asd_new(">=");};
-expressao_comparacao: expressao_comparacao operador_comparacao expressao_soma {$$ = $2; asd_add_child($$, $1); asd_add_child($$, $3);}
+operador_comparacao: '<' {$$ = ast_new("<");}
+| '>' {$$ = ast_new(">");}
+| TK_OC_LE {$$ = ast_new("<=");}
+| TK_OC_GE {$$ = ast_new(">=");};
+expressao_comparacao: expressao_comparacao operador_comparacao expressao_soma {
+    $$ = $2; 
+    $$->tipo = inferencia_tipos($1->tipo,$3->tipo); 
+    ast_add_filho($$, $1); 
+    ast_add_filho($$, $3);
+    }
 | expressao_soma {$$ = $1;};
 
-operador_soma: '+' {$$ = asd_new("+");}
-| '-' {$$ = asd_new("-");};
-expressao_soma: expressao_soma operador_soma expressao_multiplicacao {$$ = $2; asd_add_child($$, $1); asd_add_child($$, $3);}
+operador_soma: '+' {$$ = ast_new("+");}
+| '-' {$$ = ast_new("-");};
+expressao_soma: expressao_soma operador_soma expressao_multiplicacao {
+    $$ = $2; 
+    $$->tipo = inferencia_tipos($1->tipo,$3->tipo);
+    ast_add_filho($$, $1); 
+    ast_add_filho($$, $3);
+    }
 | expressao_multiplicacao {$$ = $1;};
 
-operador_multiplicacao: '*' {$$ = asd_new("*");} 
-| '/' {$$ = asd_new("/");}
-| '%' {$$ = asd_new("%");};
-expressao_multiplicacao: expressao_multiplicacao operador_multiplicacao expressao_unaria {$$ = $2; asd_add_child($$, $1); asd_add_child($$, $3);}
+operador_multiplicacao: '*' {$$ = ast_new("*");} 
+| '/' {$$ = ast_new("/");}
+| '%' {$$ = ast_new("%");};
+expressao_multiplicacao: expressao_multiplicacao operador_multiplicacao expressao_unaria {
+    $$ = $2; 
+    $$->tipo = inferencia_tipos($1->tipo,$3->tipo);
+    ast_add_filho($$, $1); 
+    ast_add_filho($$, $3);
+    }
 | expressao_unaria {$$ = $1;}; 
 
-operador_unario: '!' {$$ = asd_new("!");}
-| '-' {$$ = asd_new("-");}; 
+operador_unario: '!' {$$ = ast_new("!");}
+| '-' {$$ = ast_new("-");}; 
 
-expressao_unaria: operador_unario expressao_unaria {$$ = $1; asd_add_child($$, $2);}
+expressao_unaria: operador_unario expressao_unaria {
+    $$ = $1; 
+    $$->tipo=$2->tipo; 
+    ast_add_filho($$, $2);
+    }
 | expressao_parenteses {$$ = $1;};
 
 expressao_parenteses: '(' expressao ')' {$$ = $2;}
 | operando {$$ = $1;};
 
-operando: TK_IDENTIFICADOR { $$ = asd_new($1.valor); }
+operando: TK_IDENTIFICADOR { 
+    struct entry *s = calloc(1, sizeof(struct entry)); 
+    s = search_pilha(pilha,$1->valor);
+    if(s==NULL){
+        printf("Erro na linha %d, operador %s não declarado\n", yylineno,$1->valor);
+        exit(ERR_UNDECLARED);
+        } else {
+            $$ = ast_new($1->valor);
+            $$->tipo = s->tipo;
+            }
+        }
 | literal {$$ = $1;} 
 | chamada_de_funcao {$$ = $1;};
 

@@ -29,10 +29,10 @@ return return TK_PR_RETURN;
 
 [-|!|*|/|%|+|<|>|'{'|}|(|)|=|,|;] return yytext[0];
 
-[0-9]+ {yylval.valor_lexico = novo_valor(yylineno, "literal", strdup(yytext)); return TK_LIT_INT;}
-[0-9]*"."[0-9]+ {yylval.valor_lexico = novo_valor(yylineno, "literal", strdup(yytext)); return TK_LIT_FLOAT;}
+[0-9]+ {yylval.valor_lexico = novo_valor(yylineno, LITERAL , strdup(yytext)); return TK_LIT_INT;}
+[0-9]*"."[0-9]+ {yylval.valor_lexico = novo_valor(yylineno, LITERAL , strdup(yytext)); return TK_LIT_FLOAT;}
 
-(_|[a-z])(_|[a-z]|[0-9])* {yylval.valor_lexico = novo_valor(yylineno, "identificador", strdup(yytext)); return TK_IDENTIFICADOR;}
+(_|[a-z])(_|[a-z]|[0-9])* {yylval.valor_lexico = novo_valor(yylineno, IDENTIFICADOR , strdup(yytext)); return TK_IDENTIFICADOR;}
 
 "//"[^\n]*|" "|"\n"|"\t" { };
 

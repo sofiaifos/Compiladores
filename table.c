@@ -97,3 +97,32 @@ void print_pilha(struct table_stack *pilha){
         print_pilha(pilha->resto);
     }
 }
+
+struct entry *search_tabela(struct table *tabela, char *valor)
+{
+    for (int i = 0; i < tabela->numero_de_entradas; i++){
+        if (tabela->entradas[i] != NULL){
+            if (strcmp(tabela->entradas[i]->valor, valor) == 0){
+                return tabela->entradas[i];
+            }
+        }
+    }
+    return NULL;
+}
+
+struct entry *search_pilha(struct table_stack *pilha, char *valor){
+    struct entry *resultado = calloc(1,sizeof(struct entry));
+    if(pilha!=NULL && valor!=NULL){
+        if(pilha->topo!=NULL){
+            resultado = search_tabela(pilha->topo, valor);
+            if (resultado != NULL){
+                return resultado;
+            }
+        }
+        if(pilha->resto!=NULL){
+            return search_pilha(pilha->resto,valor);
+        } else {
+            return NULL;
+        }
+    } else {return NULL;}
+}

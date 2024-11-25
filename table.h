@@ -43,4 +43,8 @@ void free_pilha(struct table_stack *pilha);
 
 void print_pilha(struct table_stack *pilha);
 
+struct entry *search_tabela(struct table *tabela, char *valor);
+
+struct entry *search_pilha(struct table_stack *pilha, char *valor);
+
 #endif //_TABELA_H_

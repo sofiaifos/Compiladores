@@ -7,7 +7,7 @@ PARSER=parser.tab.c parser.tab.h
 DEPS=lex.yy.c $(PARSER)
 
 etapa$(ETAPA): $(OBJ)
-	$(CC) -o $@ $^
+	$(CC) -g -o $@ $^
 		
 $(ODIR)/%.o: %.c $(DEPS)
 	mkdir -p $(ODIR)
@@ -23,7 +23,7 @@ lex.yy.c: scanner.l
 		flex scanner.l
 		
 $(PARSER): parser.y
-	bison -d parser.y
+	bison -d -g -Dparse.trace parser.y
 	
 compress: clean
 	tar cvzf etapa$(ETAPA).tgz --exclude-vcs --exclude=teste.txt --exclude=runtests.sh --exclude=output2dot.sh --exclude=etapa$(ETAPA).tgz . 
@@ -34,5 +34,5 @@ run:
 
 
 clean:
-	rm -f $(PARSER) lex.yy.c etapa$(ETAPA) saida.dot
+	rm -f $(PARSER) lex.yy.c etapa$(ETAPA) saida.dot *.gv
 	rm -r -f $(ODIR)

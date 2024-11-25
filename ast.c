@@ -14,7 +14,7 @@ struct value *novo_valor(int linha, enum token_types tipo, char *valor){
 };
 
 
-ast_t *ast_new(const char *label, enum data_types tipo)
+ast_t *ast_new(const char *label)
 {
   ast_t *ret = NULL;
   ret = calloc(1, sizeof(ast_t));
@@ -23,7 +23,6 @@ ast_t *ast_new(const char *label, enum data_types tipo)
     ret->numero_de_filhos = 0;
     ret->filhos = NULL;
     ret->prox = NULL;
-    ret->tipo = tipo;
   }
   return ret;
 }
@@ -31,6 +30,7 @@ ast_t *ast_new(const char *label, enum data_types tipo)
 void ast_prox(ast_t *arvore, ast_t *prox, int numero_de_filhos)
 {
   if(arvore != NULL && prox != NULL){
+    prox->tipo = arvore->tipo;
     if(prox->numero_de_filhos<numero_de_filhos){
       arvore->prox=prox;
     } else if(prox->numero_de_filhos==numero_de_filhos){
@@ -67,7 +67,7 @@ static void _asd_print (ast_t *arvore)
 {
   int i;
   if (arvore != NULL){
-    printf("  %p [label=\"%s\"];\n", arvore, arvore->label, arvore->tipo);
+    printf("  %p [label=\"%s tipo: %d\"];\n", arvore, arvore->label, arvore->tipo);
     for (i = 0; i < arvore->numero_de_filhos; i++){
       printf("  %p,%p\n", arvore, arvore->filhos[i]);
       _asd_print(arvore->filhos[i]);

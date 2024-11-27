@@ -8,7 +8,8 @@ enum token_types {
 
 enum data_types {
   FLOAT = 2,
-  INT = 1
+  INT = 1,
+  UNDECLARED = 0
 };
 
 struct value{

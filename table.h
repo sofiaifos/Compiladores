@@ -9,10 +9,9 @@ enum natures {
 };
 
 struct entry {
-    int linha;
     enum natures natureza;
     enum data_types tipo;
-    char *valor;
+    struct value *valor_lex;
 };
 
 struct table{
@@ -25,7 +24,7 @@ struct table_stack{
     struct table_stack *resto;
 };
 
-struct entry *nova_entrada(int linha, enum natures natureza, enum data_types tipo, char *valor);
+struct entry *nova_entrada(enum natures natureza, enum data_types tipo, struct value *valor_lex);
 
 struct table *nova_tabela();
 
@@ -42,6 +41,8 @@ void free_tabela(struct table *tabela);
 void free_pilha(struct table_stack *pilha);
 
 void print_pilha(struct table_stack *pilha);
+
+void atualiza_tipos_tabela(struct table *tabela, enum data_types tipo);
 
 struct entry *search_tabela(struct table *tabela, char *valor);
 

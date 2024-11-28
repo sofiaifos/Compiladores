@@ -102,7 +102,7 @@ struct entry *search_tabela(struct table *tabela, char *valor)
 {
     if(tabela!=NULL&&valor!=NULL){
     for (int i = 0; i < tabela->numero_de_entradas; i++){
-        if (tabela->entradas != NULL && tabela->entradas[i] != NULL && tabela->entradas[i]->valor_lex != NULL){
+        if (tabela->entradas[i]->valor_lex != NULL){
             if (strcmp(tabela->entradas[i]->valor_lex->valor, valor) == 0){
                 return tabela->entradas[i];
             }

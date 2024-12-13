@@ -67,7 +67,7 @@ static void _asd_print (ast_t *arvore)
 {
   int i;
   if (arvore != NULL){
-    printf("  %p [label=\"%s tipo: %d\"];\n", arvore, arvore->label, arvore->tipo);
+    printf("  %p [label=\"%s\"];\n", arvore, arvore->label);
     for (i = 0; i < arvore->numero_de_filhos; i++){
       printf("  %p,%p\n", arvore, arvore->filhos[i]);
       _asd_print(arvore->filhos[i]);

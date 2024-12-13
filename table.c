@@ -2,16 +2,16 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "table.h"
+#include "ast.h"
 
-struct entry *nova_entrada(int linha, enum natures natureza, enum data_types tipo, char *valor){
+struct entry *nova_entrada(enum natures natureza, enum data_types tipo, struct value *valor_lex){
     struct entry *ent = NULL;
     ent = calloc(1, sizeof(struct entry));
     if (ent != NULL){
-        ent->linha = linha;
         ent->natureza = natureza;
         ent->tipo = tipo;
-        ent->valor = strdup(valor);
-    }
+        ent->valor_lex=valor_lex;
+    } 
     return ent;
 };
 
@@ -91,7 +91,7 @@ void print_pilha(struct table_stack *pilha){
     printf("-------------------\n");
     if(pilha->topo != NULL){
     for(int i=0;i<pilha->topo->numero_de_entradas;i++){
-        printf("Linha: %d, Tipo: %d, Valor: %s\n", pilha->topo->entradas[i]->linha, pilha->topo->entradas[i]->tipo,pilha->topo->entradas[i]->valor);
+        printf("Linha: %d, Tipo: %d, Valor: %s\n", pilha->topo->entradas[i]->valor_lex->linha, pilha->topo->entradas[i]->tipo,pilha->topo->entradas[i]->valor_lex->valor);
     }}
     if(pilha->resto!=NULL){
         print_pilha(pilha->resto);
@@ -100,15 +100,28 @@ void print_pilha(struct table_stack *pilha){
 
 struct entry *search_tabela(struct table *tabela, char *valor)
 {
+    if(tabela!=NULL&&valor!=NULL){
     for (int i = 0; i < tabela->numero_de_entradas; i++){
-        if (tabela->entradas[i] != NULL){
-            if (strcmp(tabela->entradas[i]->valor, valor) == 0){
+        if (tabela->entradas[i]->valor_lex != NULL){
+            if (strcmp(tabela->entradas[i]->valor_lex->valor, valor) == 0){
                 return tabela->entradas[i];
             }
         }
     }
+    }
     return NULL;
 }
+
+void atualiza_tipos_tabela(struct table *tabela, enum data_types tipo){
+    int i = 0;
+     while(tabela->numero_de_entradas > i){
+        if(tabela->entradas[i]->tipo == UNDECLARED){
+            tabela->entradas[i]->tipo = tipo;
+        }
+        i++;
+    }
+}
+
 
 struct entry *search_pilha(struct table_stack *pilha, char *valor){
     struct entry *resultado = calloc(1,sizeof(struct entry));

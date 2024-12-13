@@ -1,6 +1,6 @@
 *.tab.*
 lex.yy.c
 *.dot
-etapa3
+etapa4
 output2dot.sh
 /obj

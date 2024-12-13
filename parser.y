@@ -13,16 +13,16 @@
     #include <stdio.h>
     #include <string.h>
     #include <stdlib.h>
+    #include <stdlib.h>
 int yylex(void);
 void yyerror (char const *mensagem);
 %}
 %{
 
+
     extern int yylineno;
     extern void *arvore;
     extern struct table_stack *pilha;
-    int yydebug = 1;
-    enum data_types tipo_atual;
 %}
 
 %code requires{ 
@@ -61,7 +61,6 @@ void yyerror (char const *mensagem);
 %type<nodo> funcao
 %type<nodo> cabecalho
 %type<nodo> corpo
-%type<nodo> nome_da_funcao
 %type<nodo> bloco_de_comandos
 %type<nodo> lista_de_comandos
 %type<nodo> comando
@@ -118,23 +117,22 @@ criar_pilha: {pilha = nova_pilha();}
 /* --------------- Função --------------- */
 funcao: cabecalho corpo desempilha_tabela {$$=$1;ast_add_filho($$,$2);};
 
-cabecalho: nome_da_funcao '=' empilha_tabela lista_de_parametros '>' tipagem {
-    $$=$1;
-    struct entry *func = calloc(1, sizeof(struct entry));
-    func = search_tabela(pilha->resto->topo,$$->label);
+cabecalho: TK_IDENTIFICADOR '=' empilha_tabela lista_de_parametros '>' tipagem {
+    $$ = ast_new($1->valor);
+    struct entry *func = calloc(1, sizeof(struct entry*));
+    func = search_tabela(pilha->resto->topo,$1->valor);
     if(func!=NULL){
-        printf("Erro na linha %d, identificador %s já declarado na linha %d\n", yylineno, func->valor, func->linha);
+        printf("Erro na linha %d, identificador %s já declarado na linha %d\n", yylineno, func->valor_lex->valor, func->valor_lex->linha);
         exit(ERR_DECLARED);
     } else { 
-    func = nova_entrada(yylineno,FUNCAO,$6,$$->label); 
+    func = nova_entrada(FUNCAO,$6,$1); 
     add_entrada(pilha->resto->topo,func);
-    $$->tipo = $6;
     }
+    $$->tipo = $6;
+
 };
 
 corpo: '{' lista_de_comandos '}' {$$=$2;};
-
-nome_da_funcao: TK_IDENTIFICADOR {$$ = ast_new($1->valor);};
 
 lista_de_parametros: lista_de_parametros_nao_vazia | /*vazia*/;
 
@@ -147,11 +145,11 @@ parametro: TK_IDENTIFICADOR '<' '-' tipagem {
         printf("Erro na linha %d, parâmetro %s já declarado", yylineno, $1->valor);
         exit(ERR_DECLARED);
     } else {
-    param = nova_entrada(yylineno,VARIAVEL,FLOAT,$1->valor);
+    param = nova_entrada(VARIAVEL,$4,$1);
     add_entrada(pilha->topo,param);
     }
 };
-tipagem: TK_PR_INT {$$=INT; tipo_atual = INT;}| TK_PR_FLOAT{$$=FLOAT; tipo_atual = FLOAT;};
+tipagem: TK_PR_INT {$$=INT;}| TK_PR_FLOAT{$$=FLOAT;};
 
 bloco_de_comandos: '{' empilha_tabela lista_de_comandos desempilha_tabela'}' {$$=$3;};
 lista_de_comandos: comando lista_de_comandos{
@@ -181,6 +179,7 @@ comando_simples: declaracao_de_variavel {if($1!=NULL){$$ = $1;}}
 declaracao_de_variavel: tipagem lista_de_identificadores {
     if($2!=NULL){$2->tipo=$1;};
     $$=$2;
+    atualiza_tipos_tabela(pilha->topo,$1);
     ast_prox($2,$2,3);
 };
 
@@ -199,7 +198,7 @@ variavel: TK_IDENTIFICADOR {
         printf("Erro na linha %d, identificador %s já foi declarado na linha %d", yylineno, $1->valor, $1->linha);
         exit(ERR_DECLARED);
     } else {
-    var = nova_entrada(yylineno,VARIAVEL,tipo_atual,$1->valor);
+    var = nova_entrada(VARIAVEL,UNDECLARED,$1);
     add_entrada(pilha->topo,var);
     }
 }
@@ -210,13 +209,11 @@ variavel: TK_IDENTIFICADOR {
         printf("Erro na linha %d, identificador %s já foi declarado na linha %d", yylineno, $1->valor, $1->linha);
         exit(ERR_DECLARED);
     } else {
-        $$ = ast_new("<="); 
-        $$->tipo = tipo_atual; 
+        $$ = ast_new("<=");  
         ast_t *l = ast_new($1->valor); 
-        l->tipo = tipo_atual; 
         ast_add_filho($$,l);
         ast_add_filho($$,$3);
-        var = nova_entrada(yylineno,VARIAVEL,tipo_atual,$1->valor);
+        var = nova_entrada(VARIAVEL,UNDECLARED,$1);
         add_entrada(pilha->topo,var);
     }
 };
@@ -246,18 +243,18 @@ atribuicao: TK_IDENTIFICADOR '=' expressao {
 
 
 /* --------------- Chamada de função --------------- */
-chamada_de_funcao: nome_da_funcao '(' lista_de_argumentos ')' {
-    int len = strlen($1->label);
+chamada_de_funcao: TK_IDENTIFICADOR '(' lista_de_argumentos ')' {
+    int len = strlen($1->valor);
     char call[5+len]; 
     strcpy(call,"call "); 
-    strcat(call,$1->label); 
+    strcat(call,$1->valor); 
     struct entry *s = calloc(1, sizeof(struct entry)); 
-    s=search_pilha(pilha,$1->label); 
+    s=search_pilha(pilha,$1->valor); 
     if(s==NULL){
-        printf("Erro na linha %d, função %s não existe\n", yylineno, $1->label);
+        printf("Erro na linha %d, função %s não existe\n", yylineno, $1->valor);
         exit(ERR_UNDECLARED);
         } else if(s->natureza != FUNCAO){
-            printf("Erro na linha %d, %s não é uma função\n",yylineno,$1->label);
+            printf("Erro na linha %d, %s não é uma função\n",yylineno,$1->valor);
             exit(ERR_VARIABLE);
             } else{
                 $$=ast_new(call); 

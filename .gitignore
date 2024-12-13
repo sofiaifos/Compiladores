@@ -4,3 +4,4 @@ lex.yy.c
 etapa4
 output2dot.sh
 /obj
+ilocsim.py

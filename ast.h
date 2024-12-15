@@ -1,6 +1,8 @@
 #ifndef _ARVORE_H_
 #define _ARVORE_H_
 
+#include "iloc.h"
+
 enum token_types {
   IDENTIFICADOR,
   LITERAL
@@ -24,6 +26,7 @@ typedef struct ast {
   struct ast **filhos;
   struct ast *prox;
   enum data_types tipo;
+  struct iloc_list *instrucao;
 } ast_t;
 
 /*

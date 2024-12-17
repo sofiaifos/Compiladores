@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "iloc.h"
+#include "ast.h"
 
 char* gera_rotulo(){
     static int rotulo_num = 1;

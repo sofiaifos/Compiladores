@@ -13,23 +13,31 @@
     #include <stdio.h>
     #include <string.h>
     #include <stdlib.h>
-    #include <stdlib.h>
+
 int yylex(void);
 void yyerror (char const *mensagem);
 %}
 %{
 
-
     extern int yylineno;
     extern void *arvore;
     extern struct table_stack *pilha;
+
 %}
 
 %code requires{ 
     #include "ast.h"
     #include "table.h"
+    #include "iloc.h"
     #include "errors.h"
+struct iloc_list* gera_instrucao_binaria(char* operacao, ast_t *operando1, ast_t *operando2, char* local);
 }
+
+%{    
+
+
+
+%}
 
 %union{
 	struct value *valor_lexico;
@@ -309,6 +317,8 @@ expressao_or: expressao_or TK_OC_OR expressao_and {
     $$->tipo = inferencia_tipos($1->tipo,$3->tipo); 
     ast_add_filho($$, $1); 
     ast_add_filho($$, $3);
+    $$->local = gera_temp();
+    $$->instrucao = gera_instrucao_binaria("or",$1,$3,$$->local);
     }
 | expressao_and {$$ = $1;};
 
@@ -317,6 +327,8 @@ expressao_and: expressao_and TK_OC_AND expressao_eq {
     $$->tipo = inferencia_tipos($1->tipo,$3->tipo); 
     ast_add_filho($$, $1); 
     ast_add_filho($$, $3);
+    $$->local = gera_temp();
+    $$->instrucao = gera_instrucao_binaria("and",$1,$3,$$->local);
     }
 | expressao_eq {$$ = $1;};
 
@@ -327,6 +339,12 @@ expressao_eq: expressao_eq operador_eq expressao_comparacao {
     $$->tipo = inferencia_tipos($1->tipo,$3->tipo); 
     ast_add_filho($$, $1); 
     ast_add_filho($$, $3);
+    $$->local = gera_temp();
+    if(!strcmp($2->label,"==")){
+        $$->instrucao = gera_instrucao_binaria("cmp_EQ",$1,$3,$$->local);
+    } else if(!strcmp($2->label,"!=")){
+        $$->instrucao = gera_instrucao_binaria("cmp_NE",$1,$3,$$->local);
+    }
     }
 | expressao_comparacao {$$ = $1;};
 
@@ -339,6 +357,17 @@ expressao_comparacao: expressao_comparacao operador_comparacao expressao_soma {
     $$->tipo = inferencia_tipos($1->tipo,$3->tipo); 
     ast_add_filho($$, $1); 
     ast_add_filho($$, $3);
+
+    $$->local = gera_temp();
+    if(!strcmp($2->label,">")){
+        $$->instrucao = gera_instrucao_binaria("cmp_GT",$1,$3,$$->local);
+    } else if(!strcmp($2->label,"<")){
+        $$->instrucao = gera_instrucao_binaria("cmp_LT",$1,$3,$$->local);
+    } else if(!strcmp($2->label,"<=")){
+        $$->instrucao = gera_instrucao_binaria("cmp_LE",$1,$3,$$->local);
+    } else if(!strcmp($2->label,">=")){
+        $$->instrucao = gera_instrucao_binaria("cmp_GE",$1,$3,$$->local);
+    }
     }
 | expressao_soma {$$ = $1;};
 
@@ -348,7 +377,13 @@ expressao_soma: expressao_soma operador_soma expressao_multiplicacao {
     $$ = $2; 
     $$->tipo = inferencia_tipos($1->tipo,$3->tipo);
     ast_add_filho($$, $1); 
-    ast_add_filho($$, $3);
+    ast_add_filho($$, $3);    
+    $$->local = gera_temp();
+    if(!strcmp($2->label,"+")){
+        $$->instrucao = gera_instrucao_binaria("add",$1,$3,$$->local);
+    } else if(!strcmp($2->label,"-")){
+        $$->instrucao = gera_instrucao_binaria("sub",$1,$3,$$->local);
+    }
     }
 | expressao_multiplicacao {$$ = $1;};
 
@@ -360,6 +395,12 @@ expressao_multiplicacao: expressao_multiplicacao operador_multiplicacao expressa
     $$->tipo = inferencia_tipos($1->tipo,$3->tipo);
     ast_add_filho($$, $1); 
     ast_add_filho($$, $3);
+    $$->local = gera_temp();
+    if(!strcmp($1->label,"*")){
+      $$->instrucao = gera_instrucao_binaria("mult",$1,$3,$$->local);
+    } else if(!strcmp($1->label,"/")){
+      $$->instrucao = gera_instrucao_binaria("div",$1,$3,$$->local);
+    }
     }
 | expressao_unaria {$$ = $1;}; 
 
@@ -370,13 +411,26 @@ expressao_unaria: operador_unario expressao_unaria {
     $$ = $1; 
     $$->tipo=$2->tipo; 
     ast_add_filho($$, $2);
+
+    $$->local = gera_temp();
+    if(!strcmp($1->label,"-")){
+      struct iloc_list *i = gera_codigo("multI",$2->local,"-1",$$->local);
+      $$->instrucao = concatena_codigo($2->instrucao,i);
+    } else if(!strcmp($1->label,"!")){
+      char *t1 = gera_temp();
+      struct iloc_list *load = gera_codigo("loadI",t1,"0", NULL);
+      struct iloc_list *cmp = gera_codigo("cmp_EQ",$2->local,t1,$$->local);
+      struct iloc_list *i = concatena_codigo(load,cmp);
+      $$->instrucao = concatena_codigo($2->instrucao,i);
+    }
     }
 | expressao_parenteses {$$ = $1;};
 
 expressao_parenteses: '(' expressao ')' {$$ = $2;}
 | operando {$$ = $1;};
 
-operando: TK_IDENTIFICADOR { 
+operando: 
+TK_IDENTIFICADOR { 
     struct entry *s = calloc(1, sizeof(struct entry)); 
     s = search_pilha(pilha,$1->valor);
     if(s==NULL){
@@ -385,9 +439,15 @@ operando: TK_IDENTIFICADOR {
         } else {
             $$ = ast_new($1->valor);
             $$->tipo = s->tipo;
+            $$->local = gera_temp();
+            $$->instrucao = gera_codigo("loadAI","rfp",s->deslocamento,$$->local);
             }
         }
-| literal {$$ = $1;} 
+| literal {
+    $$ = $1;
+    $$->local = gera_temp();
+    $$->instrucao = gera_codigo("loadI",$$->label, $$->local, NULL);
+    } 
 | chamada_de_funcao {$$ = $1;};
 
 %%
@@ -396,3 +456,10 @@ void yyerror(char const *mensagem)
 {
     fprintf(stderr, "%s na linha %d \n", mensagem, yylineno);
 }
+
+struct iloc_list *gera_instrucao_binaria(char* operacao, ast_t *operando1, ast_t *operando2, char* local){
+    struct iloc_list *i = gera_codigo(operacao,operando1->local,operando2->local,local);
+    struct iloc_list *load = concatena_codigo(operando1->instrucao,operando2->instrucao);
+    struct iloc_list *aux = concatena_codigo(load,i);
+    return aux;
+    }

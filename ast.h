@@ -27,6 +27,7 @@ typedef struct ast {
   struct ast *prox;
   enum data_types tipo;
   struct iloc_list *instrucao;
+  char* local;
 } ast_t;
 
 /*

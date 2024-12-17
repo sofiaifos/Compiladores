@@ -12,6 +12,7 @@ struct entry {
     enum natures natureza;
     enum data_types tipo;
     struct value *valor_lex;
+    char* deslocamento;
 };
 
 struct table{

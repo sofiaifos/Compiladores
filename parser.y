@@ -246,6 +246,8 @@ atribuicao: TK_IDENTIFICADOR '=' expressao {
                 e->tipo = def->tipo; 
                 ast_add_filho($$,e);
                 ast_add_filho($$,$3);
+                struct iloc_list *i = gera_codigo("storeAI",$3->local,"rpf",def->deslocamento);
+                $$->instrucao = concatena_codigo($3->instrucao,i);
                 }
     };
 
@@ -288,25 +290,78 @@ controle_de_fluxo: condicional {$$ = $1;}
 condicional: TK_PR_IF '(' expressao ')' bloco_de_comandos condicional_else {
     $$=ast_new("if");
     ast_add_filho($$,$3);
+    struct iloc_list *aux;
+    char *t1 = gera_temp();
+    struct iloc_list *load = gera_codigo("loadI",t1,"0",NULL);
+    aux=concatena_codigo($3->instrucao,load);
+    char *t2 = gera_temp();
+    struct iloc_list *cmp = gera_codigo("cmp_NE",t1,$3->local,t2);
+    aux = concatena_codigo(aux,cmp);
+    char *lf = gera_rotulo();
+    char *lt = gera_rotulo();
+    struct iloc_list *cbr = gera_codigo("cbr","t2",lt,lf);
+    aux = concatena_codigo(aux,cbr);
+    struct iloc_list *btrue = gera_codigo("nop",lt,NULL,NULL);
+    aux = concatena_codigo(aux,btrue);
+    aux = concatena_codigo(aux,$5->instrucao);
     if($5!=NULL){
         ast_add_filho($$,$5);
         };
     if($6!=NULL){
-        ast_add_filho($$,$6);
+            ast_add_filho($$,$6);
+            char *lj = gera_rotulo();
+            struct iloc_list *jumpi = gera_codigo("jumpI",lj,NULL,NULL);
+            aux = concatena_codigo(aux,jumpi);
+            struct iloc_list *bfalse = gera_codigo("nop",lf,NULL,NULL);
+            aux = concatena_codigo(aux,bfalse);
+            aux = concatena_codigo(aux,$6->instrucao);
+            struct iloc_list *bprox = gera_codigo("nop", lj, NULL,NULL);
+            aux = concatena_codigo(aux,bprox);
+            $$->instrucao = aux;
+        } else{
+            struct iloc_list *bfalse = gera_codigo("nop",lf,NULL,NULL);
+            aux = concatena_codigo(aux,bfalse);
+            $$->instrucao = aux;
         }
 };
 
-condicional_else: TK_PR_ELSE bloco_de_comandos {if($2!=NULL){$$=$2;}}
+condicional_else: TK_PR_ELSE bloco_de_comandos {
+    if($2!=NULL){
+        $$=$2;
+        $$->instrucao = $2->instrucao;
+        }}
 | /*vazio*/ {$$=NULL;};
 
 
 /* --------------- Iterativo --------------- */
 iterativo: TK_PR_WHILE '(' expressao ')' bloco_de_comandos { 
     $$=ast_new("while"); 
-    ast_add_filho($$,$3); 
+    ast_add_filho($$,$3);
+     struct iloc_list *aux;
+     char *l1 = gera_rotulo();
+     struct iloc_list *inicio = gera_codigo("nop", l1, NULL, NULL);
+     aux = concatena_codigo(inicio,$3->instrucao);
+     char *t1 = gera_temp();
+     struct iloc_list *load = gera_codigo("loadI", "0", t1, NULL);
+     aux = concatena_codigo(aux,load);
+     char *t2 = gera_temp();
+     struct iloc_list *cmp = gera_codigo("cmp_NE",t1,$3->local,t2);
+     aux = concatena_codigo(aux, cmp);
+     char *l2 = gera_rotulo();
+     char *l3 = gera_rotulo();
+     struct iloc_list *cbr = gera_codigo("cbr", t2, l2, l3);
+     aux = concatena_codigo(aux,cbr);
+     struct iloc_list *nop = gera_codigo("nop", l2, NULL, NULL);
+     aux = concatena_codigo(aux,nop);
     if($5!=NULL){
         ast_add_filho($$,$5);
+        aux = concatena_codigo(aux,$5->instrucao);
         }
+    struct iloc_list *jumpi = gera_codigo("jumpI", l1, NULL, NULL);
+    aux = concatena_codigo(aux,jumpi);
+    struct iloc_list *fora = gera_codigo("nop", l3, NULL, NULL);
+    aux = concatena_codigo(aux,fora);
+    $$->instrucao = aux;
     };
 
 /* --------------- Expressões --------------- */

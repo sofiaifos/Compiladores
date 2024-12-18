@@ -25,6 +25,8 @@ struct table *nova_tabela(){
 
 void add_entrada(struct table *tabela, struct entry *entrada){
     if (tabela != NULL && entrada != NULL){
+        int len = snprintf(NULL,0,"%ld",sizeof(int)*tabela->numero_de_entradas);
+        entrada->deslocamento = calloc(1,sizeof(char)*len);
         sprintf(entrada->deslocamento, "%ld", sizeof(int)*tabela->numero_de_entradas);
         tabela->numero_de_entradas++;
         tabela->entradas = realloc(tabela->entradas, tabela->numero_de_entradas * sizeof(struct entry));

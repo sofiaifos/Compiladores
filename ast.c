@@ -89,3 +89,26 @@ enum data_types inferencia_tipos(enum data_types tipo1, enum data_types tipo2){
     return tipo1;
   }
 }
+
+void print_codigo(ast_t *arvore){
+  struct iloc_list *codigo = arvore->instrucao;
+    for(int i=0; i<codigo->num_instrucoes; i++){
+        struct iloc *instrucao = codigo->instrucoes[i];
+        char* operacao = instrucao->operacao;
+       if(!(strcmp("storeAI",operacao))){
+        printf("%s %s => %s, %s\n",operacao, instrucao->arg1, instrucao->arg2, instrucao->arg3);
+       } else if(!(strcmp("loadI",operacao))){
+        printf("%s %s => %s\n",operacao, instrucao->arg1, instrucao->arg2);
+       } else if(!(strcmp("cmp_LT",operacao))||!(strcmp("cmp_LE",operacao))||!(strcmp("cmp_EQ",operacao))||!(strcmp("cmp_GE",operacao))||!(strcmp("cmp_GT",operacao))||!(strcmp("cmp_NE",operacao))){
+        printf("%s %s, %s -> %s\n",operacao, instrucao->arg1, instrucao->arg2, instrucao->arg3);
+       } else if(!strcmp("cbr",operacao)){
+        printf("%s %s -> %s, %s\n",operacao, instrucao->arg1, instrucao->arg2, instrucao->arg3);
+       } else if(!strcmp("nop",operacao)){
+        printf("%s: ",instrucao->arg1);
+       } else if(!strcmp("jumpI",operacao)){
+        printf("%s -> %s\n",operacao, instrucao->arg1);
+       } else if(!strcmp("add",operacao)||!strcmp("sub",operacao)||!strcmp("mult",operacao)||!strcmp("div",operacao)||!strcmp("multI",operacao)||!strcmp("and",operacao)||!strcmp("or",operacao)||!strcmp("loadAI",operacao)){
+        printf("%s %s, %s => %s\n",operacao, instrucao->arg1, instrucao->arg2, instrucao->arg3);       
+       }
+    }
+}

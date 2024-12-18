@@ -1,6 +1,6 @@
 /* ----------------------------------------------------- */
 /* --------------- Projeto de Compilador --------------- */
-/* -------------- E4 de análise semântica -------------- */
+/* -------------- E5 de geração de código -------------- */
 /* ----------------------------------------------------- */
 /* -------- Integrantes --------------------------------
 
@@ -22,6 +22,7 @@ void yyerror (char const *mensagem);
     extern int yylineno;
     extern void *arvore;
     extern struct table_stack *pilha;
+    //int yydebug = 1;
 
 %}
 
@@ -113,7 +114,7 @@ struct iloc_list* gera_instrucao_binaria(char* operacao, ast_t *operando1, ast_t
 programa: criar_pilha empilha_tabela lista_de_funcoes desempilha_tabela {$$ = $3;arvore=$$;}
 | /* vazio */ {$$=NULL;arvore=$$;};
 
-lista_de_funcoes: funcao lista_de_funcoes {$$=$1;ast_add_filho($$,$2);$$->instrucao=concatena_codigo($1->instrucao,$2->instrucao);}
+lista_de_funcoes: funcao lista_de_funcoes {$$=$1;ast_add_filho($$,$2);if($1!=NULL&&$2!=NULL)$$->instrucao=concatena_codigo($1->instrucao,$2->instrucao);}
 | funcao {$$=$1;};
 
 /* ---------------------- Não terminais para gerenciamento de escopo --------------------- */
@@ -167,7 +168,8 @@ lista_de_comandos: comando lista_de_comandos{
         uma subarvore de comandos e que o proximo deve ser colocado ao fim dela*/
         if($$->prox!=NULL){ast_add_filho($$->prox,$2);
         } else{ast_add_filho($$,$2);}
-        $$->instrucao=concatena_codigo($1->instrucao,$2->instrucao);
+        if($2!=NULL){
+        $$->instrucao=concatena_codigo($1->instrucao,$2->instrucao);}
     }else{$$=$2;}}
 | /*vazia*/ {$$ = NULL;};
 
@@ -248,7 +250,7 @@ atribuicao: TK_IDENTIFICADOR '=' expressao {
                 e->tipo = def->tipo; 
                 ast_add_filho($$,e);
                 ast_add_filho($$,$3);
-                struct iloc_list *i = gera_codigo("storeAI",$3->local,"rpf",def->deslocamento);
+                struct iloc_list *i = gera_codigo("storeAI",$3->local,(char *)"rfp",def->deslocamento);
                 $$->instrucao = concatena_codigo($3->instrucao,i);
                 }
     };
@@ -295,20 +297,20 @@ condicional: TK_PR_IF '(' expressao ')' bloco_de_comandos condicional_else {
     ast_add_filho($$,$3);
     struct iloc_list *aux;
     char *t1 = gera_temp();
-    struct iloc_list *load = gera_codigo("loadI",t1,"0",NULL);
+    struct iloc_list *load = gera_codigo("loadI","0",t1,NULL);
     aux=concatena_codigo($3->instrucao,load);
     char *t2 = gera_temp();
     struct iloc_list *cmp = gera_codigo("cmp_NE",t1,$3->local,t2);
     aux = concatena_codigo(aux,cmp);
     char *lf = gera_rotulo();
     char *lt = gera_rotulo();
-    struct iloc_list *cbr = gera_codigo("cbr","t2",lt,lf);
+    struct iloc_list *cbr = gera_codigo("cbr",t2,lt,lf);
     aux = concatena_codigo(aux,cbr);
     struct iloc_list *btrue = gera_codigo("nop",lt,NULL,NULL);
     aux = concatena_codigo(aux,btrue);
-    aux = concatena_codigo(aux,$5->instrucao);
     if($5!=NULL){
         ast_add_filho($$,$5);
+        aux = concatena_codigo(aux,$5->instrucao);
         };
     if($6!=NULL){
             ast_add_filho($$,$6);
@@ -476,7 +478,7 @@ expressao_unaria: operador_unario expressao_unaria {
       $$->instrucao = concatena_codigo($2->instrucao,i);
     } else if(!strcmp($1->label,"!")){
       char *t1 = gera_temp();
-      struct iloc_list *load = gera_codigo("loadI",t1,"0", NULL);
+      struct iloc_list *load = gera_codigo("loadI","0", t1, NULL);
       struct iloc_list *cmp = gera_codigo("cmp_EQ",$2->local,t1,$$->local);
       struct iloc_list *i = concatena_codigo(load,cmp);
       $$->instrucao = concatena_codigo($2->instrucao,i);
@@ -504,7 +506,7 @@ TK_IDENTIFICADOR {
 | literal {
     $$ = $1;
     $$->local = gera_temp();
-    $$->instrucao = gera_codigo("loadI",$$->label, $$->local, NULL);
+    $$->instrucao = gera_codigo("loadI",$$->label,$$->local, NULL);
     } 
 | chamada_de_funcao {$$ = $1;};
 

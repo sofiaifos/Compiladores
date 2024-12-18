@@ -7,7 +7,8 @@ extern int yylex_destroy(void);
 void *arvore = NULL;
 struct table_stack *pilha = NULL;
 void exporta (void *arvore){
-  asd_print(arvore);
+  //asd_print(arvore);
+  print_codigo(arvore);
 };
 
 int main (int argc, char **argv)

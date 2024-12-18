@@ -29,7 +29,7 @@ $(PARSER): parser.y
 	bison -d -g -Dparse.trace parser.y
 	
 compress: clean
-	tar cvzf etapa$(ETAPA).tgz --exclude-vcs --exclude=teste.txt --exclude=runtests.sh --exclude=output2dot.sh --exclude=etapa$(ETAPA).tgz . 
+	tar cvzf etapa$(ETAPA).tgz --exclude-vcs --exclude=teste.txt --exclude=runtests.sh --exclude=output2dot.sh --exclude=etapa$(ETAPA).tgz --exclude=ilocsim.py . 
 
 run: 
 	./etapa4 < teste.txt | ./output2dot.sh > saida.dot 
@@ -37,5 +37,5 @@ run:
 
 
 clean:
-	rm -f $(PARSER) lex.yy.c etapa$(ETAPA) saida.dot *.gv
+	rm -f $(PARSER) lex.yy.c etapa$(ETAPA) *.tgz saida *.gv
 	rm -r -f $(ODIR)

@@ -17,7 +17,7 @@ char* gera_temp(){
     static int temp_num = 1;
     int len = snprintf(NULL,0,"%d",temp_num);
     char *temp = calloc(1,sizeof(char)*len+2);
-    snprintf(temp,len+2,"L%d",temp_num);
+    snprintf(temp,len+2,"r%d",temp_num);
     temp_num++;
     return temp;
 }
@@ -57,34 +57,14 @@ struct iloc_list *gera_codigo(char* operacao, char* arg1, char* arg2, char* arg3
 
 struct iloc_list *concatena_codigo(struct iloc_list *lista_instrucoes1, struct iloc_list *lista_instrucoes2){
     struct iloc_list *lista = nova_lista_instrucoes();
+    if(lista_instrucoes1!=NULL){
     for(int i=0;i<lista_instrucoes1->num_instrucoes;i++){
         add_instrucao(lista,lista_instrucoes1->instrucoes[i]);
-    }
+    }}
+    if(lista_instrucoes2!=NULL){
     for(int i=0;i<lista_instrucoes2->num_instrucoes;i++){
         add_instrucao(lista,lista_instrucoes2->instrucoes[i]);
-    }
+    }}
     return lista;
 }
 
-
-void print_codigo(struct iloc_list *codigo){
-    for(int i=0; i<codigo->num_instrucoes; i++){
-        struct iloc *instrucao = codigo->instrucoes[i];
-        char* operacao = instrucao->operacao;
-       if(!(strcmp("storeAI",operacao))){
-        printf("%s %s => %s, %s\n",operacao, instrucao->arg1, instrucao->arg2, instrucao->arg3);
-       } else if(!(strcmp("loadI",operacao))){
-        printf("%s %s => %s\n",operacao, instrucao->arg1, instrucao->arg2);
-       } else if(!(strcmp("cmp_LT",operacao))||!(strcmp("cmp_LE",operacao))||!(strcmp("cmp_EQ",operacao))||!(strcmp("cmp_GE",operacao))||!(strcmp("cmp_GT",operacao))||!(strcmp("cmp_NE",operacao))){
-        printf("%s %s, %s -> %s\n",operacao, instrucao->arg1, instrucao->arg2, instrucao->arg3);
-       } else if(!strcmp("cbr",operacao)){
-        printf("%s %s -> %s, %s\n",operacao, instrucao->arg1, instrucao->arg2, instrucao->arg3);
-       } else if(!strcmp("nop",operacao)){
-        printf("%s: ",instrucao->arg1);
-       } else if(!strcmp("jumpI",operacao)){
-        printf("%s -> %s\n",operacao, instrucao->arg1);
-       } else if(!strcmp("add",operacao)||!strcmp("sub",operacao)||!strcmp("mult",operacao)||!strcmp("div",operacao)||!strcmp("multI",operacao)||!strcmp("and",operacao)||!strcmp("or",operacao)||!strcmp("loadAI",operacao)){
-        printf("%s %s, %s => %s\n",operacao, instrucao->arg1, instrucao->arg2, instrucao->arg3);       
-       }
-    }
-}

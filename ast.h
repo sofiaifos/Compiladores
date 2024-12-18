@@ -62,4 +62,6 @@ void asd_print (ast_t *arvore);
 
 enum data_types inferencia_tipos(enum data_types tipo1, enum data_types tipo2);
 
+void print_codigo(ast_t *arvore);
+
 #endif //_ARVORE_H_

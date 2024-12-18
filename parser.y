@@ -113,7 +113,7 @@ struct iloc_list* gera_instrucao_binaria(char* operacao, ast_t *operando1, ast_t
 programa: criar_pilha empilha_tabela lista_de_funcoes desempilha_tabela {$$ = $3;arvore=$$;}
 | /* vazio */ {$$=NULL;arvore=$$;};
 
-lista_de_funcoes: funcao lista_de_funcoes {$$=$1;ast_add_filho($$,$2);}
+lista_de_funcoes: funcao lista_de_funcoes {$$=$1;ast_add_filho($$,$2);$$->instrucao=concatena_codigo($1->instrucao,$2->instrucao);}
 | funcao {$$=$1;};
 
 /* ---------------------- Não terminais para gerenciamento de escopo --------------------- */
@@ -123,7 +123,7 @@ desempilha_tabela:{pop(pilha);}
 criar_pilha: {pilha = nova_pilha();}
 
 /* --------------- Função --------------- */
-funcao: cabecalho corpo desempilha_tabela {$$=$1;ast_add_filho($$,$2);};
+funcao: cabecalho corpo desempilha_tabela {$$=$1;ast_add_filho($$,$2);$$->instrucao = $2->instrucao;  };
 
 cabecalho: TK_IDENTIFICADOR '=' empilha_tabela lista_de_parametros '>' tipagem {
     $$ = ast_new($1->valor);
@@ -167,6 +167,7 @@ lista_de_comandos: comando lista_de_comandos{
         uma subarvore de comandos e que o proximo deve ser colocado ao fim dela*/
         if($$->prox!=NULL){ast_add_filho($$->prox,$2);
         } else{ast_add_filho($$,$2);}
+        $$->instrucao=concatena_codigo($1->instrucao,$2->instrucao);
     }else{$$=$2;}}
 | /*vazia*/ {$$ = NULL;};
 
@@ -217,7 +218,8 @@ variavel: TK_IDENTIFICADOR {
         printf("Erro na linha %d, identificador %s já foi declarado na linha %d", yylineno, $1->valor, $1->linha);
         exit(ERR_DECLARED);
     } else {
-        $$ = ast_new("<=");  
+        $$ = ast_new("<=");
+        $$->instrucao = $3->instrucao;  
         ast_t *l = ast_new($1->valor); 
         ast_add_filho($$,l);
         ast_add_filho($$,$3);
@@ -269,16 +271,17 @@ chamada_de_funcao: TK_IDENTIFICADOR '(' lista_de_argumentos ')' {
             } else{
                 $$=ast_new(call); 
                 $$->tipo=s->tipo; 
+                $$->instrucao = $3->instrucao;
                 ast_add_filho($$,$3);
                 }
     };
 
 lista_de_argumentos:  expressao {$$=$1;}
-| expressao ',' lista_de_argumentos {$$=$1;ast_add_filho($$,$3);};
+| expressao ',' lista_de_argumentos {$$=$1;ast_add_filho($$,$3);$$->instrucao=concatena_codigo($1->instrucao,$3->instrucao);};
 
 
 /* --------------- Comando de retorno --------------- */
-retorno: TK_PR_RETURN expressao {$$=ast_new("return"); ast_add_filho($$,$2);};
+retorno: TK_PR_RETURN expressao {$$=ast_new("return"); ast_add_filho($$,$2);$$->instrucao = $2->instrucao;};
 
 
 /* --------------- Comandos de controle de fluxo --------------- */

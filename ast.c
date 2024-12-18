@@ -91,6 +91,7 @@ enum data_types inferencia_tipos(enum data_types tipo1, enum data_types tipo2){
 }
 
 void print_codigo(ast_t *arvore){
+  if (arvore!=NULL){
   struct iloc_list *codigo = arvore->instrucao;
     for(int i=0; i<codigo->num_instrucoes; i++){
         struct iloc *instrucao = codigo->instrucoes[i];
@@ -110,5 +111,5 @@ void print_codigo(ast_t *arvore){
        } else if(!strcmp("add",operacao)||!strcmp("sub",operacao)||!strcmp("mult",operacao)||!strcmp("div",operacao)||!strcmp("multI",operacao)||!strcmp("and",operacao)||!strcmp("or",operacao)||!strcmp("loadAI",operacao)){
         printf("%s %s, %s => %s\n",operacao, instrucao->arg1, instrucao->arg2, instrucao->arg3);       
        }
-    }
+    }}
 }

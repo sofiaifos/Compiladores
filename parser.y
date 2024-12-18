@@ -111,10 +111,19 @@ struct iloc_list* gera_instrucao_binaria(char* operacao, ast_t *operando1, ast_t
 
 
 /* --------------- Programa --------------- */
-programa: criar_pilha empilha_tabela lista_de_funcoes desempilha_tabela {$$ = $3;arvore=$$;}
+programa: criar_pilha empilha_tabela lista_de_funcoes desempilha_tabela {
+    $$ = $3;
+    arvore=$$;
+}
 | /* vazio */ {$$=NULL;arvore=$$;};
 
-lista_de_funcoes: funcao lista_de_funcoes {$$=$1;ast_add_filho($$,$2);if($1!=NULL&&$2!=NULL)$$->instrucao=concatena_codigo($1->instrucao,$2->instrucao);}
+lista_de_funcoes: funcao lista_de_funcoes {
+    $$=$1;
+    ast_add_filho($$,$2);
+    if($1!=NULL&&$2!=NULL){
+        $$->instrucao=concatena_codigo($1->instrucao,$2->instrucao);
+    }
+}
 | funcao {$$=$1;};
 
 /* ---------------------- Não terminais para gerenciamento de escopo --------------------- */
@@ -124,19 +133,20 @@ desempilha_tabela:{pop(pilha);}
 criar_pilha: {pilha = nova_pilha();}
 
 /* --------------- Função --------------- */
-funcao: cabecalho corpo desempilha_tabela {$$=$1;ast_add_filho($$,$2);$$->instrucao = $2->instrucao;  };
+funcao: cabecalho corpo desempilha_tabela {
+    $$=$1;
+    ast_add_filho($$,$2);
+    if($2!=NULL){
+    $$->instrucao = $2->instrucao;  }
+};
 
 cabecalho: TK_IDENTIFICADOR '=' empilha_tabela lista_de_parametros '>' tipagem {
     $$ = ast_new($1->valor);
-    struct entry *func = calloc(1, sizeof(struct entry*));
-    func = search_tabela(pilha->resto->topo,$1->valor);
-    if(func!=NULL){
-        printf("Erro na linha %d, identificador %s já declarado na linha %d\n", yylineno, func->valor_lex->valor, func->valor_lex->linha);
-        exit(ERR_DECLARED);
-    } else { 
+    struct entry *func = busca_erro_semantico_tabela("",ERR_DECLARED,$1->valor,pilha->resto->topo);
+    
     func = nova_entrada(FUNCAO,$6,$1); 
     add_entrada(pilha->resto->topo,func);
-    }
+    
     $$->tipo = $6;
 
 };
@@ -148,19 +158,20 @@ lista_de_parametros: lista_de_parametros_nao_vazia | /*vazia*/;
 lista_de_parametros_nao_vazia: lista_de_parametros_nao_vazia TK_OC_OR parametro | parametro;
 
 parametro: TK_IDENTIFICADOR '<' '-' tipagem {
-    struct entry *param = calloc(1, sizeof(struct entry));
-    param = search_tabela(pilha->topo, $1->valor);
-    if (param != NULL){
-        printf("Erro na linha %d, parâmetro %s já declarado", yylineno, $1->valor);
-        exit(ERR_DECLARED);
-    } else {
+    char rotulo[100];
+    sprintf(rotulo,"Erro na linha %d, parâmetro %s já declarado\n", yylineno, $1->valor);
+    struct entry *param = busca_erro_semantico_tabela(rotulo,ERR_DECLARED,$1->valor,pilha->topo);
+
     param = nova_entrada(VARIAVEL,$4,$1);
     add_entrada(pilha->topo,param);
-    }
+    
 };
-tipagem: TK_PR_INT {$$=INT;}| TK_PR_FLOAT{$$=FLOAT;};
+
+tipagem: TK_PR_INT {$$=INT;}
+| TK_PR_FLOAT{$$=FLOAT;};
 
 bloco_de_comandos: '{' empilha_tabela lista_de_comandos desempilha_tabela'}' {$$=$3;};
+
 lista_de_comandos: comando lista_de_comandos{
     if($1!=NULL){
         $$=$1;
@@ -202,57 +213,48 @@ lista_de_identificadores: variavel ',' lista_de_identificadores{
 | variavel {if($1!=NULL){$$ = $1;}};
 
 variavel: TK_IDENTIFICADOR {
-    $$ = NULL;
-    struct entry *var = calloc(1, sizeof(struct entry));
-    var = search_tabela(pilha->topo,$1->valor);
-    if(var != NULL){
-        printf("Erro na linha %d, identificador %s já foi declarado na linha %d", yylineno, $1->valor, $1->linha);
-        exit(ERR_DECLARED);
-    } else {
+    $$ = NULL;    
+    struct entry *var = busca_erro_semantico_tabela("",ERR_DECLARED,$1->valor,pilha->topo);
+
     var = nova_entrada(VARIAVEL,UNDECLARED,$1);
     add_entrada(pilha->topo,var);
-    }
+    
 }
-| TK_IDENTIFICADOR TK_OC_LE literal {
-    struct entry *var = calloc(1, sizeof(struct entry));
-    var = search_tabela(pilha->topo,$1->valor);
-    if(var != NULL){
-        printf("Erro na linha %d, identificador %s já foi declarado na linha %d", yylineno, $1->valor, $1->linha);
-        exit(ERR_DECLARED);
-    } else {
-        $$ = ast_new("<=");
-        $$->instrucao = $3->instrucao;  
-        ast_t *l = ast_new($1->valor); 
-        ast_add_filho($$,l);
-        ast_add_filho($$,$3);
-        var = nova_entrada(VARIAVEL,UNDECLARED,$1);
-        add_entrada(pilha->topo,var);
-    }
+| TK_IDENTIFICADOR TK_OC_LE literal { 
+    struct entry *var = busca_erro_semantico_tabela("",ERR_DECLARED,$1->valor,pilha->topo);
+
+    $$ = ast_new("<=");
+    $$->instrucao = $3->instrucao;  
+    ast_t *l = ast_new($1->valor); 
+    ast_add_filho($$,l);
+    ast_add_filho($$,$3);
+    var = nova_entrada(VARIAVEL,UNDECLARED,$1);
+    add_entrada(pilha->topo,var);
+    
 };
 
-literal: TK_LIT_INT {$$ = ast_new($1->valor); $$->tipo = INT;}
-| TK_LIT_FLOAT      {$$ = ast_new($1->valor); $$->tipo = FLOAT;};
+literal: TK_LIT_INT {$$ = ast_new($1->valor); 
+                     $$->tipo = INT;}
+| TK_LIT_FLOAT      {$$ = ast_new($1->valor); 
+                     $$->tipo = FLOAT;};
 
 /* --------------- Comando de atribuição --------------- */
 atribuicao: TK_IDENTIFICADOR '=' expressao {
-    struct entry *def = malloc(sizeof(struct entry)); 
-    def = search_pilha(pilha,$1->valor); 
-    if(def==NULL){
-        printf("Erro na linha %d, atribuição feita para variável não declarada\n", yylineno);
-        exit(ERR_UNDECLARED);
-        }else if(def->natureza != VARIAVEL){
-            printf("Erro na linha %d, atribuição feita para função\n",yylineno);
-            exit(ERR_FUNCTION);
-            } else {
-                $$ = ast_new("="); 
-                $$->tipo=def->tipo; 
-                ast_t *e = ast_new($1->valor); 
-                e->tipo = def->tipo; 
-                ast_add_filho($$,e);
-                ast_add_filho($$,$3);
-                struct iloc_list *i = gera_codigo("storeAI",$3->local,(char *)"rfp",def->deslocamento);
-                $$->instrucao = concatena_codigo($3->instrucao,i);
-                }
+    char rotulo[100];
+    sprintf(rotulo,"Erro na linha %d, atribuição feita para variável não declarada\n", yylineno);
+    struct entry *def = busca_erro_semantico_pilha(rotulo,ERR_UNDECLARED,1,$1->valor,(enum natures)NULL);
+    sprintf(rotulo,"Erro na linha %d, atribuição feita para função\n",yylineno);
+    busca_erro_semantico_pilha(rotulo,ERR_FUNCTION,1,$1->valor,VARIAVEL);
+
+    $$ = ast_new("="); 
+    $$->tipo=def->tipo; 
+    ast_t *e = ast_new($1->valor); 
+    e->tipo = def->tipo; 
+    ast_add_filho($$,e);
+    ast_add_filho($$,$3);
+    struct iloc_list *i = gera_codigo("storeAI",$3->local,(char *)"rfp",def->deslocamento);
+    $$->instrucao = concatena_codigo($3->instrucao,i);
+    
     };
 
 
@@ -262,28 +264,33 @@ chamada_de_funcao: TK_IDENTIFICADOR '(' lista_de_argumentos ')' {
     char call[5+len]; 
     strcpy(call,"call "); 
     strcat(call,$1->valor); 
-    struct entry *s = calloc(1, sizeof(struct entry)); 
-    s=search_pilha(pilha,$1->valor); 
-    if(s==NULL){
-        printf("Erro na linha %d, função %s não existe\n", yylineno, $1->valor);
-        exit(ERR_UNDECLARED);
-        } else if(s->natureza != FUNCAO){
-            printf("Erro na linha %d, %s não é uma função\n",yylineno,$1->valor);
-            exit(ERR_VARIABLE);
-            } else{
-                $$=ast_new(call); 
-                $$->tipo=s->tipo; 
-                $$->instrucao = $3->instrucao;
-                ast_add_filho($$,$3);
-                }
-    };
+    
+    char rotulo[100];
+    sprintf(rotulo,"Erro na linha %d, função %s não existe\n", yylineno, $1->valor);
+    struct entry *s = busca_erro_semantico_pilha(rotulo,ERR_UNDECLARED,1,$1->valor,(enum natures)NULL);
+    sprintf(rotulo,"Erro na linha %d, %s não é uma função\n",yylineno,$1->valor);
+    busca_erro_semantico_pilha(rotulo,ERR_VARIABLE,1,$1->valor,FUNCAO);
 
+    $$=ast_new(call); 
+    $$->tipo=s->tipo; 
+    $$->instrucao = $3->instrucao;
+    ast_add_filho($$,$3);
+    
+    };
 lista_de_argumentos:  expressao {$$=$1;}
-| expressao ',' lista_de_argumentos {$$=$1;ast_add_filho($$,$3);$$->instrucao=concatena_codigo($1->instrucao,$3->instrucao);};
+| expressao ',' lista_de_argumentos {
+    $$=$1;
+    ast_add_filho($$,$3);
+    $$->instrucao=concatena_codigo($1->instrucao,$3->instrucao);
+};
 
 
 /* --------------- Comando de retorno --------------- */
-retorno: TK_PR_RETURN expressao {$$=ast_new("return"); ast_add_filho($$,$2);$$->instrucao = $2->instrucao;};
+retorno: TK_PR_RETURN expressao {
+    $$=ast_new("return"); 
+    ast_add_filho($$,$2);
+    $$->instrucao = $2->instrucao;
+};
 
 
 /* --------------- Comandos de controle de fluxo --------------- */
@@ -334,7 +341,8 @@ condicional_else: TK_PR_ELSE bloco_de_comandos {
     if($2!=NULL){
         $$=$2;
         $$->instrucao = $2->instrucao;
-        }}
+    }
+}
 | /*vazio*/ {$$=NULL;};
 
 
@@ -456,11 +464,11 @@ expressao_multiplicacao: expressao_multiplicacao operador_multiplicacao expressa
     ast_add_filho($$, $1); 
     ast_add_filho($$, $3);
     $$->local = gera_temp();
-    if(!strcmp($1->label,"*")){
+    if(!strcmp($2->label,"*")){
       $$->instrucao = gera_instrucao_binaria("mult",$1,$3,$$->local);
-    } else if(!strcmp($1->label,"/")){
+    } else if(!strcmp($2->label,"/")){
       $$->instrucao = gera_instrucao_binaria("div",$1,$3,$$->local);
-    }
+    } else {$$->instrucao = concatena_codigo($1->instrucao,$3->instrucao);}
     }
 | expressao_unaria {$$ = $1;}; 
 
@@ -491,18 +499,15 @@ expressao_parenteses: '(' expressao ')' {$$ = $2;}
 
 operando: 
 TK_IDENTIFICADOR { 
-    struct entry *s = calloc(1, sizeof(struct entry)); 
-    s = search_pilha(pilha,$1->valor);
-    if(s==NULL){
-        printf("Erro na linha %d, operador %s não declarado\n", yylineno,$1->valor);
-        exit(ERR_UNDECLARED);
-        } else {
-            $$ = ast_new($1->valor);
-            $$->tipo = s->tipo;
-            $$->local = gera_temp();
-            $$->instrucao = gera_codigo("loadAI","rfp",s->deslocamento,$$->local);
-            }
-        }
+    char rotulo[100];
+    sprintf(rotulo,"Erro na linha %d, operador %s não declarado\n", yylineno,$1->valor);
+    struct entry *s = busca_erro_semantico_pilha(rotulo,ERR_UNDECLARED,1,$1->valor,(enum natures)NULL);
+    $$ = ast_new($1->valor);
+    $$->tipo = s->tipo;
+    $$->local = gera_temp();
+    $$->instrucao = gera_codigo("loadAI","rfp",s->deslocamento,$$->local);
+    }
+        
 | literal {
     $$ = $1;
     $$->local = gera_temp();
@@ -522,4 +527,4 @@ struct iloc_list *gera_instrucao_binaria(char* operacao, ast_t *operando1, ast_t
     struct iloc_list *load = concatena_codigo(operando1->instrucao,operando2->instrucao);
     struct iloc_list *aux = concatena_codigo(load,i);
     return aux;
-    }
+}

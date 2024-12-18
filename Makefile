@@ -1,6 +1,6 @@
 CC=gcc
 ETAPA=5
-_OBJ=lex.yy.o parser.tab.o main.o ast.o table.o iloc.o
+_OBJ=lex.yy.o parser.tab.o main.o ast.o table.o iloc.o errors.o
 ODIR=obj
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 PARSER=parser.tab.c parser.tab.h
@@ -21,6 +21,9 @@ table: table.h table.c
 
 iloc: iloc.h iloc.c
 	gcc -fsanitize=address -g -Werror -o iloc iloc.c	
+
+errors: errors.h errors.c
+	gcc -fsanitize=address -g -Werror -o errors errors.c	
 
 lex.yy.c: scanner.l
 		flex scanner.l

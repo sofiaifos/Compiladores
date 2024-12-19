@@ -468,7 +468,7 @@ expressao_multiplicacao: expressao_multiplicacao operador_multiplicacao expressa
       $$->instrucao = gera_instrucao_binaria("mult",$1,$3,$$->local);
     } else if(!strcmp($2->label,"/")){
       $$->instrucao = gera_instrucao_binaria("div",$1,$3,$$->local);
-    } else {$$->instrucao = concatena_codigo($1->instrucao,$3->instrucao);}
+    } 
     }
 | expressao_unaria {$$ = $1;}; 
 
